@@ -6,7 +6,7 @@ library(tidyr)
 library(matrixStats)
 library(robustbase)
 
-# Calculates mean/median and SD/IQR for the radial strains. Then plots these with the rages as a ribbon. 
+# Calculates mean/median and SD/IQR for the radial strains. Then plots these with the ranges as a ribbon. 
 
 
 radial_strainrate <- read.csv("Radial_strain_39k_50phases.csv", header=T)
