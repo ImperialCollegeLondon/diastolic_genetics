@@ -1,9 +1,9 @@
 
 require(tidyverse)
-require(UKBRlib)
-require(VennDiagram)
 require(epiChoose)
 require(ggrepel)
+require(VennDiagram)
+require(UKBRlib)
 
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
@@ -46,7 +46,7 @@ lapply(input_dat[c(2,5,8)], function(x) x %>% group_by(CHR) %>% summarise(N=n(),
 
 for(i in 1:length(measures)) {
   
-  discovery = input_dat[[which(names(input_dat)==measures[i])]]
+  discovery = input_dat[[which(names(input_dat)==paste0(measures[i], "_full"))]]
   replication = input_dat[[which(names(input_dat)==paste0(measures[i], "_repl_match"))]]
   print(data.frame(Discovery=discovery$BETA, Replication=replication$BETA) %>% ggplot(aes(Discovery, Replication)) + geom_point() + theme_thesis(20) + ggtitle(measures[i]))
 }
@@ -193,7 +193,9 @@ for(i in 1:length(roots)) {
 
 # DISC REPL CHECK ---------------------------------------------------------
 
+roots = c("LAV","long_PDSR","radial_PDSR")
 options(stringsAsFactors=FALSE)
+
 hits = list(
   lav = c("rs59985551","rs1173727","rs35489511"),
   long = c("rs2275950","rs11970286","rs10261575","rs11535974","rs499715"),
@@ -228,6 +230,14 @@ hits_all %>% select(c(1,2,4,6,8)) %>% gather("Group","Beta",3:5) %>% ggplot(aes(
 
 
 # V2G ---------------------------------------------------------------------
+
+hits = data.frame(
+  variant = c("rs59985551","rs1173727","rs35489511","rs2275950","rs11970286","rs10261575","rs11535974","rs499715","rs528236848","rs9388001","rs2234962","rs11170519","rs369533272"),
+  gwas = c(rep("lav",3), rep("long",5), rep("radial",5))
+)
+
+hits_annot = 
+
 
 # eqtlgen sig eqtl hits
 # data/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded
