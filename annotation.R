@@ -7,6 +7,7 @@ require(UKBRlib)
 require(devtools)
 require(ghql)
 require(graphql)
+require(rtracklayer)
 load_all("../bullseye/")
 
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
@@ -313,32 +314,23 @@ ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_
 # gwas
 
 gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")))
-
 write_tsv(gwas, paste0("data/", hits$variant[1], "/locus.txt"))
 
+gwas_granges = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
+seqlevelsStyle(gwas_granges)
+seqlevelsStyle(gwas_granges) = "UCSC"
+seqlevels(gwas_granges)
 
+# liftover to grch37
+ch = import.chain("data/hg19ToHg38.over.chain")
+gwas_granges_lo = unlist(liftOver(gwas_granges, ch))
+gwas_df_lo = tbl_df(as.data.frame(gwas_granges_lo))
+gwas_df_lo$seqnames = str_replace(gwas_df_lo$seqnames, "chr", "")
 
-# eqtlgen sig eqtl hits
-# data/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded
-eqtlgen = read_tsv("data/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt")
+new_names = c(beta="slope", p="pval_nominal", chr="seqnames", pos="start", entrez_id="entrezgeneid")
+gwas_df_lo = gwas_df_lo %>% dplyr::rename(!!new_names)
 
-loc_37 = c(
-  118680374
-)
-my_gene = "CEP85L"
+ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
 
-# eqtlgen
-eqtlgen %>% filter(GeneSymbol==my_gene) %>% ggplot(aes(SNPPos,-log(BonferroniP, base = 10)))+ geom_point() + geom_vline(xintercept=loc_37) + ggtitle(my_gene)
-
-loc_38 = c(
-  32830415
-)
-
-# gtex
-y %>% filter(Tissue=="Nerve - Tibial") %>% ggplot(aes(x=as.numeric(str_extract(`Variant Id`, "[0-9]{8}")), y=`P-Value`)) + geom_point() + geom_vline(xintercept=c(loc_38))
-
-
-# EQTL CATALOG ------------------------------------------------------------
-
-
+qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$pvalue,10)[match(gwas_df_lo$start, summary_stats$position)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
 
