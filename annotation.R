@@ -4,6 +4,9 @@ require(epiChoose)
 require(ggrepel)
 require(VennDiagram)
 require(UKBRlib)
+require(devtools)
+require(ghql)
+load_all("~/links/bullseye/")
 
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
@@ -236,7 +239,23 @@ hits = data.frame(
   gwas = c(rep("lav",3), rep("long",5), rep("radial",5))
 )
 
-hits_annot = 
+hits_annot = getMetadataForGenotypedSnps(hits$variant)
+hits_ot = bind_rows(lapply(hits$variant, get_coordinates_from_rsid))
+hits = left_join(hits, hits_ot, by=c("variant"="rsId"))
+hits$pos_38 = as.numeric(str_replace(hits$id, "^.*_([0-9]+)_.*$", "\\1"))
+hits$chr = as.numeric(str_extract(hits$id, "^[0-9]+"))
+hits$ref = str_replace(hits$id, "^.*([A-Z]+)_[A-Z]+$", "\\1")
+hits$alt = str_replace(hits$id, "^.*[A-Z]+_([A-Z]+)$", "\\1")
+
+
+# RS59985551 --------------------------------------------------------------
+
+v2g_dat = get_V2G_data(hits$id[1])
+
+
+
+
+
 
 
 # eqtlgen sig eqtl hits
