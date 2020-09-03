@@ -6,7 +6,8 @@ require(VennDiagram)
 require(UKBRlib)
 require(devtools)
 require(ghql)
-load_all("~/links/bullseye/")
+require(graphql)
+load_all("../bullseye/")
 
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
@@ -232,6 +233,34 @@ hits_all %>% select(c(1,2,3,5,7)) %>% gather("Group","P",3:5) %>% ggplot(aes(fil
 hits_all %>% select(c(1,2,4,6,8)) %>% gather("Group","Beta",3:5) %>% ggplot(aes(fill=Group, y=Beta, x=hits)) + geom_bar(position="dodge", stat="identity") + theme_thesis(20) + facet_wrap(~id, scales="free")
 
 
+# GARFIELD ----------------------------------------------------------------
+
+my_measure = measures[1]
+
+# example
+setwd("garfield/")
+garfield.run(
+  paste0(my_measure, ".output"), 
+  data.dir="garfield-data",
+  trait=my_measure,
+  run.option="prep",
+  chrs=c(1:22),
+  exclude=c(895,975,976,977,978,979,980)
+)
+
+garfield.run(
+  paste0(my_measure, ".output"),
+  data.dir="garfield-data",
+  run.option="perm",
+  nperm=100000,
+  thresh=c(0.1,0.01,0.001,1e-04,1e-05,1e-06,1e-07,1e-08),
+  pt_thresh = c(1e-05, 1e-06, 1e-07, 1e-08), maf.bins=5, tags.bins=5,
+  tss.bins=5, prep.file=paste0(my_measure, ".output.prep"), optim_mode=TRUE, minit=100, thresh_perm=0.0001
+)
+
+garfield.plot(paste0(my_measure, ".output.perm"), num_perm=100000, output_prefix=paste0(my_measure, ".output"), plot_title=my_measure, filter=10, tr=-log10(0.05/498))
+
+
 # V2G ---------------------------------------------------------------------
 
 hits = data.frame(
@@ -246,13 +275,42 @@ hits$pos_38 = as.numeric(str_replace(hits$id, "^.*_([0-9]+)_.*$", "\\1"))
 hits$chr = as.numeric(str_extract(hits$id, "^[0-9]+"))
 hits$ref = str_replace(hits$id, "^.*([A-Z]+)_[A-Z]+$", "\\1")
 hits$alt = str_replace(hits$id, "^.*[A-Z]+_([A-Z]+)$", "\\1")
+hits$closest_gene = NA
+
+# http://htmlpreview.github.io/?https://github.com/kauralasoo/eQTL-Catalogue-resources/blob/master/scripts/tabix_use_case.html
+source("R/import_eqtl_catalog.R")
+source("R/scan_tabix_df.R")
+
+tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
+imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 
 
 # RS59985551 --------------------------------------------------------------
 
-v2g_dat = get_V2G_data(hits$id[1])
+v2g_rs59985551 = get_V2G_data(hits$id[1])
+hits$closest_gene[1] = v2g_rs59985551$gene[which.min(unlist(lapply(v2g_rs59985551$distances, function(x) x$tissues))),]
 
+snp_pos = hits$pos_38[1]
+win = 2e6
+ensembl_id = "ENSG00000115380"
+region_granges = GenomicRanges::GRanges(
+  seqnames = hits$chr, 
+  ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
+  strand = "*")
+region_granges
 
+eqtl_df = dplyr::filter(imported_tabix_paths, study=="GTEx_V8", tissue_label=="Thyroid")
+
+# extract column names from first file
+column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
+summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=ensembl_id, column_names)
+
+ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
+
+# phewas plot?
+# run phewas and pull signal for anything significant and add to colocalisation step?
+
+# 
 
 
 
@@ -280,56 +338,5 @@ y %>% filter(Tissue=="Nerve - Tibial") %>% ggplot(aes(x=as.numeric(str_extract(`
 
 # EQTL CATALOG ------------------------------------------------------------
 
-# http://htmlpreview.github.io/?https://github.com/kauralasoo/eQTL-Catalogue-resources/blob/master/scripts/tabix_use_case.html
-source("R/import_eqtl_catalog.R")
-source("R/scan_tabix_df.R")
 
-tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
-imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
-
-snp_pos = 56815721
-win = 2e6
-ensembl_id = "ENSG00000163947"
-region_granges = GenomicRanges::GRanges(
-  seqnames = "3", 
-  ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
-  strand = "*")
-region_granges
-
-eqtl_df = dplyr::filter(tabix_paths, study=="BLUEPRINT", tissue_label=="monocyte")
-eqtl_df = dplyr::filter(tabix_paths, study=="CEDAR", tissue_label=="platelet")
-
-# extract column names from first file
-column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
-summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=ensembl_id, column_names)
-
-ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point()
-
-
-# GARFIELD ----------------------------------------------------------------
-
-my_measure = measures[1]
-
-# example
-setwd("garfield/")
-garfield.run(
-  paste0(my_measure, ".output"), 
-  data.dir="garfield-data",
-  trait=my_measure,
-  run.option="prep",
-  chrs=c(1:22),
-  exclude=c(895,975,976,977,978,979,980)
-)
-
-garfield.run(
-  paste0(my_measure, ".output"),
-  data.dir="garfield-data",
-  run.option="perm",
-  nperm=100000,
-  thresh=c(0.1,0.01,0.001,1e-04,1e-05,1e-06,1e-07,1e-08),
-  pt_thresh = c(1e-05, 1e-06, 1e-07, 1e-08), maf.bins=5, tags.bins=5,
-  tss.bins=5, prep.file=paste0(my_measure, ".output.prep"), optim_mode=TRUE, minit=100, thresh_perm=0.0001
-)
-
-garfield.plot(paste0(my_measure, ".output.perm"), num_perm=100000, output_prefix=paste0(my_measure, ".output"), plot_title=my_measure, filter=10, tr=-log10(0.05/498))
 
