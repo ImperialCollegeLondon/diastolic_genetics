@@ -294,7 +294,7 @@ snp_pos = hits$pos_38[1]
 win = 2e6
 ensembl_id = "ENSG00000115380"
 region_granges = GenomicRanges::GRanges(
-  seqnames = hits$chr, 
+  seqnames = hits$chr[1], 
   ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
   strand = "*")
 region_granges
@@ -310,9 +310,11 @@ ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_
 # phewas plot?
 # run phewas and pull signal for anything significant and add to colocalisation step?
 
-# 
+# gwas
 
+gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")))
 
+write_tsv(gwas, paste0("data/", hits$variant[1], "/locus.txt"))
 
 
 
