@@ -410,4 +410,4 @@
 
      # END    
 
-<img src="Circos_plot.JPG" alt="" class="inline" />
+<img src="circos_plot.JPG" alt="" class="inline" />
