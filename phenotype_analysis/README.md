@@ -206,7 +206,7 @@
     imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
     
     Call:
-    imcdiag(mod = model2, method = "VIF", vif = 5)
+    imcdiag(mod = model, method = "VIF", vif = 5)
 
 
     VIF Multicollinearity Diagnostics
@@ -410,4 +410,4 @@
 
      # END    
 
-<img src="plots/circos_final.JPG" alt="" class="inline" />
+<img src="Circos_plot.JPG" alt="" class="inline" />
