@@ -1,6 +1,6 @@
 # Genetic and environmental determinants of diastolic heart function
 
-![](img/strain_analysis.pdf)
+![](img/strain_analysis.png)
 
 
 ## Content
