@@ -51,7 +51,7 @@
     
     ## Final check for collinearity using the selected variables
 
-    model<-lm(`PDSRll (s-1)`~., data=as.data.frame(multivariate_data[,position_stab[,1]]))
+    model<-lm(PDSRll~., data=as.data.frame(multivariate_data[,position_stab[,1]]))
     library(mctest)
     imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
     
