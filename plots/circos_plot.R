@@ -5,7 +5,7 @@ install.packages("circlize")
 multivariate_beta<-as.data.frame(fread("data/multivariate_beta.txt"))
 multivariate_beta<-multivariate_beta[,-1]
 rownames(multivariate_beta)<-colnames(multivariate_beta)
-multivariate_beta<-as.matrix(multivariate_beta)
+multivariate_beta<-as.matrix(t(multivariate_beta)) # transpose matrx to show linkages by column for circos plotting
 
 library(circlize)
 all_states = rownames(multivariate_beta)
