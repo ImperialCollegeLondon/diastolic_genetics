@@ -6,7 +6,7 @@ multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
 # load data for multiple linear regression analysis
 
-lm_l<-lm(long_PDSR~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
+lm_l<-lm(PDSRll~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
 co_l<-coef(lm_l, complete=TRUE)
 pval<-anova(lm_l)$`Pr(>F)`
 slml<-summary(lm_l)
@@ -14,7 +14,7 @@ slml<-summary(lm_l)
 slml$r.squared # r squared
 confint(lm_l,level=0.95) # confidence intervals
 
-lm_r<-lm(radial_PDSR~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
+lm_r<-lm(PDSRrr~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
 co_r<-coef(lm_r, complete=TRUE)
 pvalr<-anova(lm_r)$`Pr(>F)`
 slmr<-summary(lm_r) 
@@ -22,7 +22,7 @@ slmr<-summary(lm_r)
 slmr$r.squared # r squared
 confint(lm_r,level=0.95) # confidence intervals
 
-lm_la<-lm(LAVmax~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
+lm_la<-lm(LAVmaxi~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
 co_la<-coef(lm_la, complete=TRUE)
 pvalla<-anova(lm_la)$`Pr(>F)`
 slmla<-summary(lm_la)
