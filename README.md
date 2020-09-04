@@ -12,7 +12,7 @@ Left ventricular diastolic function is a key determinant of ventricular pressure
 
 ## Content
 
-The repository is composed from different sections 
+The repository is composed of different sections 
  
 * [Cardiac Image anaysis](https://github.com/baiwenjia/ukbb_cardiac) 
 Automated pipeline for image segmentation and motion analysis.
