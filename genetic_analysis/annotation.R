@@ -279,8 +279,8 @@ hits$alt = str_replace(hits$id, "^.*[A-Z]+_([A-Z]+)$", "\\1")
 hits$closest_gene = NA
 
 # http://htmlpreview.github.io/?https://github.com/kauralasoo/eQTL-Catalogue-resources/blob/master/scripts/tabix_use_case.html
-source("R/import_eqtl_catalog.R")
-source("R/scan_tabix_df.R")
+source("code/import_eqtl_catalog.R")
+source("code/scan_tabix_df.R")
 
 tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
@@ -347,4 +347,21 @@ coloc_wrapper(coloc_input)
 # phewas plot?
 # run phewas and pull signal for anything significant and add to colocalisation step?
 
+pheno_data = readProcessedQuantTraits() %>% inner_join(readSexAndAge()) %>% inner_join(readPCA())
+# pheno_data = readProcessedBinaryTraits() %>% inner_join(readSexAndAge()) %>% inner_join(readPCA())
+
+snp_mat = getImputedV3GenotypesForVariants(hits$variant[1])
+attr(snp_mat, "metadata")
+snpStats::col.summary(snp_mat)
+geno_data = getTibbleFromSnpMatrix(snp_mat)
+
+# compute associations
+
+phewas = bind_rows(
+  getPheWASResults(geno_data %>% select(SID, rs7022797), slurm=F, cores=8),
+  get(geno_data %>% select(SID, rs7022797))
+) %>% tbl_df()
+
+phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
+pheWASForest(phewas %>% filter(p.value < 0.05) %>% select(-n) %>% arrange(p.value))
 
