@@ -288,8 +288,12 @@ imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalo
 
 # RS59985551 --------------------------------------------------------------
 
+# get closest gene from open targets genetics
+
 v2g_rs59985551 = get_V2G_data(hits$id[1])
 hits$closest_gene[1] = v2g_rs59985551$gene[which.min(unlist(lapply(v2g_rs59985551$distances, function(x) x$tissues))),]
+
+# make a granges object for the variant
 
 snp_pos = hits$pos_38[1]
 win = 2e6
@@ -300,20 +304,16 @@ region_granges = GenomicRanges::GRanges(
   strand = "*")
 region_granges
 
-eqtl_df = dplyr::filter(imported_tabix_paths, study=="GTEx_V8", tissue_label=="Thyroid")
+# pull in eqtl
 
-# extract column names from first file
+eqtl_df = dplyr::filter(imported_tabix_paths, study=="GTEx_V8", tissue_label=="Thyroid")
 column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
 summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=ensembl_id, column_names)
-
 ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
 
-# phewas plot?
-# run phewas and pull signal for anything significant and add to colocalisation step?
+# get the imaging summary stats for the locus (this is the same data as the locus zoom plots)
 
-# gwas
-
-gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")))
+gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")), header=TRUE)
 write_tsv(gwas, paste0("data/", hits$variant[1], "/locus.txt"))
 
 gwas_granges = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
@@ -333,4 +333,18 @@ gwas_df_lo = gwas_df_lo %>% dplyr::rename(!!new_names)
 ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
 
 qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$pvalue,10)[match(gwas_df_lo$start, summary_stats$position)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
+
+common_variants = intersect(gwas_df_lo$start, summary_stats$position)
+coloc_input = data.frame(
+  beta1 = as.numeric(gwas_df_lo$BETA[match(common_variants, gwas_df_lo$start)]),
+  se1 = as.numeric(gwas_df_lo$SE[match(common_variants, gwas_df_lo$start)]),
+  beta2 = as.numeric(summary_stats$beta[match(common_variants, summary_stats$position)]),
+  se2 = as.numeric(summary_stats$se[match(common_variants, summary_stats$position)])
+)
+
+coloc_wrapper(coloc_input)
+
+# phewas plot?
+# run phewas and pull signal for anything significant and add to colocalisation step?
+
 
