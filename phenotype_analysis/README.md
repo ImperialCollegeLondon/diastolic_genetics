@@ -1,25 +1,4 @@
 # Cardiac Phenotype associations Pipeline
-## Multiple linear regression analysis
-
-    # load data for multiple linear regression analysis
-
-    lm_l<-lm(PDSRll~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
-    co_l<-coef(lm_l, complete=TRUE)
-    pval<-anova(lm_l)$`Pr(>F)`
-    slml<-summary(lm_l)
-    confint(lm_l,level=0.95)
-
-    lm_r<-lm(PDSRrr~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
-    co_r<-coef(lm_r, complete=TRUE)
-    pvalr<-anova(lm_r)$`Pr(>F)`
-    slmr<-summary(lm_r)
-    confint(lm_r,level=0.95)
-
-    lm_la<-lm(LAVmaxi~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Vigorous_activity+Assessment_centre, data=multidata)
-    co_la<-coef(lm_la, complete=TRUE)
-    pvalla<-anova(lm_la)$`Pr(>F)`
-    slmla<-summary(lm_la)
-    confint(lm_la,level=0.95)
 
 ## Multivariate analysis using LASSO models with stability selection for selecting the imaging phenotypes
 ### Stability selection procedure using 'stabsel'
