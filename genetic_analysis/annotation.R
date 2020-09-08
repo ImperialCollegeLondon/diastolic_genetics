@@ -286,7 +286,7 @@ tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-
 imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 
 
-# RS59985551 --------------------------------------------------------------
+# LAV - RS59985551 --------------------------------------------------------
 
 # get closest gene from open targets genetics
 
@@ -361,5 +361,88 @@ phewas = bind_rows(
 ) %>% tbl_df()
 
 phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
-pheWASForest(phewas %>% filter(p.value < 0.05) %>% select(-n) %>% arrange(p.value))
+pheWASForest(phewas %>% filter(p.value < 0.05) %>% dplyr::select(-n) %>% arrange(p.value))
+
+# TODO check why above is not working ...
+
+
+# RADIAL -  rs59985551 ----------------------------------------------------
+
+# get closest gene from open targets genetics
+
+v2g_rs2234962 = get_V2G_data(hits$id[11])
+hits$closest_gene[11] = v2g_rs2234962$gene[which.min(unlist(lapply(v2g_rs2234962$distances, function(x) x$tissues))),]
+
+# make a granges object for the variant
+
+snp_pos = hits$pos_38[11]
+win = 2e6
+ensembl_id = "ENSG00000115380"
+region_granges = GenomicRanges::GRanges(
+  seqnames = hits$chr[11], 
+  ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
+  strand = "*")
+region_granges
+
+# pull in eqtl
+
+eqtl_df = dplyr::filter(imported_tabix_paths, study=="GTEx_V8", tissue_label=="Thyroid")
+column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
+summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=ensembl_id, column_names)
+ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
+write_tsv(summary_stats, "data/rs59985551/eqtl_ENSG00000115380_GTEx_V8_Thyroid.txt")
+
+# get the imaging summary stats for the locus (this is the same data as the locus zoom plots)
+
+gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")), header=TRUE)
+write_tsv(gwas, paste0("data/", hits$variant[1], "/locus.txt"))
+
+gwas_granges = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
+seqlevelsStyle(gwas_granges)
+seqlevelsStyle(gwas_granges) = "UCSC"
+seqlevels(gwas_granges)
+
+# liftover to grch37
+ch = import.chain("data/hg19ToHg38.over.chain")
+gwas_granges_lo = unlist(liftOver(gwas_granges, ch))
+gwas_df_lo = tbl_df(as.data.frame(gwas_granges_lo))
+gwas_df_lo$seqnames = str_replace(gwas_df_lo$seqnames, "chr", "")
+
+new_names = c(beta="slope", p="pval_nominal", chr="seqnames", pos="start", entrez_id="entrezgeneid")
+gwas_df_lo = gwas_df_lo %>% dplyr::rename(!!new_names)
+
+ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
+
+qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$pvalue,10)[match(gwas_df_lo$start, summary_stats$position)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
+
+common_variants = intersect(gwas_df_lo$start, summary_stats$position)
+coloc_input = data.frame(
+  beta1 = as.numeric(gwas_df_lo$BETA[match(common_variants, gwas_df_lo$start)]),
+  se1 = as.numeric(gwas_df_lo$SE[match(common_variants, gwas_df_lo$start)]),
+  beta2 = as.numeric(summary_stats$beta[match(common_variants, summary_stats$position)]),
+  se2 = as.numeric(summary_stats$se[match(common_variants, summary_stats$position)])
+)
+
+coloc_wrapper(coloc_input)
+
+# phewas plot?
+# run phewas and pull signal for anything significant and add to colocalisation step?
+
+snp_mat = getImputedV3GenotypesForVariants(hits$variant[1])
+attr(snp_mat, "metadata")
+snpStats::col.summary(snp_mat)
+geno_data = getTibbleFromSnpMatrix(snp_mat)
+
+# compute associations
+
+phewas = bind_rows(
+  getPheWASResults(geno_data %>% dplyr::select(SID, !!as.name(hits$variant[1])), slurm=F, cores=8),
+  getQuantPheWASResults(geno_data %>% dplyr::select(SID, !!as.name(hits$variant[1])))
+) %>% tbl_df()
+
+phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
+pheWASForest(phewas %>% filter(p.value < 0.05) %>% dplyr::select(-n) %>% arrange(p.value))
+
+# TODO check why above is not working ...
+
 
