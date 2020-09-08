@@ -8,7 +8,7 @@ require(devtools)
 require(ghql)
 require(graphql)
 require(rtracklayer)
-load_all("../bullseye/")
+load_all("~/links/bullseye/")
 
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
@@ -310,6 +310,7 @@ eqtl_df = dplyr::filter(imported_tabix_paths, study=="GTEx_V8", tissue_label=="T
 column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
 summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=ensembl_id, column_names)
 ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
+write_tsv(summary_stats, "data/rs59985551/eqtl_ENSG00000115380_GTEx_V8_Thyroid.txt")
 
 # get the imaging summary stats for the locus (this is the same data as the locus zoom plots)
 
@@ -347,9 +348,6 @@ coloc_wrapper(coloc_input)
 # phewas plot?
 # run phewas and pull signal for anything significant and add to colocalisation step?
 
-pheno_data = readProcessedQuantTraits() %>% inner_join(readSexAndAge()) %>% inner_join(readPCA())
-# pheno_data = readProcessedBinaryTraits() %>% inner_join(readSexAndAge()) %>% inner_join(readPCA())
-
 snp_mat = getImputedV3GenotypesForVariants(hits$variant[1])
 attr(snp_mat, "metadata")
 snpStats::col.summary(snp_mat)
@@ -358,8 +356,8 @@ geno_data = getTibbleFromSnpMatrix(snp_mat)
 # compute associations
 
 phewas = bind_rows(
-  getPheWASResults(geno_data %>% select(SID, rs7022797), slurm=F, cores=8),
-  get(geno_data %>% select(SID, rs7022797))
+  getPheWASResults(geno_data %>% dplyr::select(SID, !!as.name(hits$variant[1])), slurm=F, cores=8),
+  getQuantPheWASResults(geno_data %>% dplyr::select(SID, !!as.name(hits$variant[1])))
 ) %>% tbl_df()
 
 phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
