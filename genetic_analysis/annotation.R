@@ -266,7 +266,8 @@ garfield.plot(paste0(my_measure, ".output.perm"), num_perm=100000, output_prefix
 
 hits = data.frame(
   variant = c("rs59985551","rs1173727","rs35489511","rs2275950","rs11970286","rs10261575","rs11535974","rs499715","rs528236848","rs9388001","rs2234962","rs11170519","rs369533272"),
-  gwas = c(rep("lav",3), rep("long",5), rep("radial",5))
+  gwas = c(rep("lav",3), rep("long",5), rep("radial",5)),
+  gwas_root = c(rep("LAV",3), rep("long_PDSR",5), rep("radial_PDSR",5))
 )
 
 hits_annot = getMetadataForGenotypedSnps(hits$variant)
@@ -277,6 +278,9 @@ hits$chr = as.numeric(str_extract(hits$id, "^[0-9]+"))
 hits$ref = str_replace(hits$id, "^.*([A-Z]+)_[A-Z]+$", "\\1")
 hits$alt = str_replace(hits$id, "^.*[A-Z]+_([A-Z]+)$", "\\1")
 hits$closest_gene = NA
+hits_gr = makeGRangesFromDataFrame(hits, keep.extra.columns=FALSE, start.field="pos_38", end.field="pos_38")
+hits_lo = lift_over(hits_gr, dir="38_to_37")
+hits$pos_37 = hits_lo$start
 
 # http://htmlpreview.github.io/?https://github.com/kauralasoo/eQTL-Catalogue-resources/blob/master/scripts/tabix_use_case.html
 source("code/import_eqtl_catalog.R")
@@ -285,13 +289,15 @@ source("code/scan_tabix_df.R")
 tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 
+eqtlgen = read_tsv("")
 
 # LAV - RS59985551 --------------------------------------------------------
 
 # get closest gene from open targets genetics
+variant_ix = 1
 
-v2g_rs59985551 = get_V2G_data(hits$id[1])
-hits$closest_gene[1] = v2g_rs59985551$gene[which.min(unlist(lapply(v2g_rs59985551$distances, function(x) x$tissues))),]
+v2g = get_V2G_data(hits$id[variant_ix])
+hits$closest_gene[variant_ix] = v2g$gene[which.min(unlist(lapply(v2g$distances, function(x) x$tissues))),]
 
 # make a granges object for the variant
 
@@ -306,23 +312,49 @@ region_granges
 
 # pull in eqtl
 
-eqtl_df = dplyr::filter(imported_tabix_paths, study=="GTEx_V8", tissue_label=="Thyroid")
-column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
-summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=ensembl_id, column_names)
-ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
-write_tsv(summary_stats, "data/rs59985551/eqtl_ENSG00000115380_GTEx_V8_Thyroid.txt")
+snp_pos = hits$pos_38[variant_ix]
+win = 2e6
+ensembl_id = c("ENSG00000115380") # candidates are efemp1
+region_granges = GenomicRanges::GRanges(
+  seqnames = hits$chr[variant_ix], 
+  ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
+  strand = "*")
+region_granges
+
+# "Alasoo_2018","BLUEPRINT","BrainSeq","CEDAR","Fairfax_2012","Fairfax_2014","GENCORD","GEUVADIS","HipSci","Kasela_2017","Lepik_2017","Naranbhai_2015","Nedelec_2016","Quach_2016","ROSMAP","Schmiedel_2018","Schwartzentruber_2018","TwinsUK","van_de_Bunt_2015"
+# "macrophage","monocyte","neutrophil","CD4+,T,cell","DLPFC","CD8+,T,cell","transverse,colon","platelet","rectum","B,cell","ileum","LCL","fibroblast","T,cell","iPSC","blood","Tfh,cell","Th17,cell","Th1,cell","Th2,cell","Treg,naive","Treg,memory","CD16+,monocyte","NK,cell","sensory,neuron","adipose","skin","pancreatic,islet"
+
+# pull in eqtl
+to_pull = data.frame(
+  ensembl_id = c("ENSG00000197771"),
+  study = c("GTEx_V8"),
+  tissue = c("Thyroid")
+)
+
+for(i in 1:dim(to_pull)[1]) {
+  if(to_pull$study[i]=="GTEx_V8") {
+    eqtl_df = dplyr::filter(imported_tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])  
+  } else {
+    eqtl_df = dplyr::filter(tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])  
+  }
+  column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
+  summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=to_pull$ensembl_id[i], column_names)
+  print(ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ggtitle(paste(unlist(to_pull[i,]), collapse=", ")))
+  write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
+}
+
 
 # get the imaging summary stats for the locus (this is the same data as the locus zoom plots)
 
-gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")), header=TRUE)
-write_tsv(gwas, paste0("data/", hits$variant[1], "/locus.txt"))
+gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
+write_tsv(gwas, paste0("data/", hits$variant[variant_ix], "/locus.txt"))
 
 gwas_granges = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
 seqlevelsStyle(gwas_granges)
 seqlevelsStyle(gwas_granges) = "UCSC"
 seqlevels(gwas_granges)
 
-# liftover to grch37
+# liftover to grch38
 ch = import.chain("data/hg19ToHg38.over.chain")
 gwas_granges_lo = unlist(liftOver(gwas_granges, ch))
 gwas_df_lo = tbl_df(as.data.frame(gwas_granges_lo))
@@ -331,7 +363,7 @@ gwas_df_lo$seqnames = str_replace(gwas_df_lo$seqnames, "chr", "")
 new_names = c(beta="slope", p="pval_nominal", chr="seqnames", pos="start", entrez_id="entrezgeneid")
 gwas_df_lo = gwas_df_lo %>% dplyr::rename(!!new_names)
 
-ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[1]) + theme_thesis(15)
+ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15)
 
 qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$pvalue,10)[match(gwas_df_lo$start, summary_stats$position)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
 
@@ -348,7 +380,7 @@ coloc_wrapper(coloc_input)
 # phewas plot?
 # run phewas and pull signal for anything significant and add to colocalisation step?
 
-snp_mat = getImputedV3GenotypesForVariants(hits$variant[1])
+snp_mat = getImputedV3GenotypesForVariants(hits$variant[variant_ix])
 attr(snp_mat, "metadata")
 snpStats::col.summary(snp_mat)
 geno_data = getTibbleFromSnpMatrix(snp_mat)
@@ -407,9 +439,12 @@ for(i in 1:dim(to_pull)[1]) {
   write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
 }
 
+# check eqtlgen separately
+
+
 # get the imaging summary stats for the locus (this is the same data as the locus zoom plots)
 
-gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", "2", " && $3>", start(region_granges), " && $3<", end(region_granges), " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")), header=TRUE)
+gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
 write_tsv(gwas, paste0("data/", hits$variant[variant_ix], "/locus.txt"))
 
 gwas_granges = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
@@ -428,7 +463,7 @@ gwas_df_lo = gwas_df_lo %>% dplyr::rename(!!new_names)
 
 ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15)
 
-qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$pvalue,10)[match(gwas_df_lo$start, summary_stats$position)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
+qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$`P-value`,10)[match(gwas_df_lo$start, summary_stats$`Pos (hg19)`)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
 
 common_variants = intersect(gwas_df_lo$start, summary_stats$position)
 coloc_input = data.frame(
