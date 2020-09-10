@@ -10,11 +10,11 @@ import_eqtl_catalog <- function(ftp_path, region, selected_gene_id, column_names
   
   # remove rsid duplicates and multi-allelic variant
   summary_stats = dplyr::select(summary_stats, -rsid) %>% 
-    dplyr::distinct() %>% # mrsid duplicates
+    dplyr::distinct() %>% # rsid duplicates
     dplyr::mutate(id = paste(chromosome, position, sep=":")) %>% 
     dplyr::group_by(id) %>% 
     dplyr::mutate(row_count = n()) %>% dplyr::ungroup() %>% 
-    dplyr::filter(row_count == 1) # ultialllics
+    dplyr::filter(row_count == 1) # multi-allelics
   
   return(summary_stats)
   
