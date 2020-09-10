@@ -289,7 +289,8 @@ source("code/scan_tabix_df.R")
 tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 
-eqtlgen = read_tsv("")
+eqtlgen = read_tsv("2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt")
+
 
 # LAV - RS59985551 --------------------------------------------------------
 
@@ -441,36 +442,34 @@ for(i in 1:dim(to_pull)[1]) {
 
 # check eqtlgen separately
 
+summary_stats = eqtlgen %>% filter(Gene==hits$closest_gene[variant_ix])
+summary_stats = makeGRangesFromDataFrame(summary_stats, keep.extra.columns=TRUE, start.field="SNPPos", end.field="SNPPos", seqnames.field="SNPChr")
+summary_stats = lift_over(summary_stats, dir="37_to_38")
 
 # get the imaging summary stats for the locus (this is the same data as the locus zoom plots)
 
 gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
 write_tsv(gwas, paste0("data/", hits$variant[variant_ix], "/locus.txt"))
 
-gwas_granges = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
-seqlevelsStyle(gwas_granges)
-seqlevelsStyle(gwas_granges) = "UCSC"
-seqlevels(gwas_granges)
+gwas = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
+gwas = lift_over(gwas, dir="37_to_38")
 
-# liftover to grch37
-ch = import.chain("data/hg19ToHg38.over.chain")
-gwas_granges_lo = unlist(liftOver(gwas_granges, ch))
-gwas_df_lo = tbl_df(as.data.frame(gwas_granges_lo))
-gwas_df_lo$seqnames = str_replace(gwas_df_lo$seqnames, "chr", "")
+ggplot(gwas, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
 
-new_names = c(beta="slope", p="pval_nominal", chr="seqnames", pos="start", entrez_id="entrezgeneid")
-gwas_df_lo = gwas_df_lo %>% dplyr::rename(!!new_names)
+qplot(-log(as.numeric(gwas$P_BOLT_LMM),10), -log(summary_stats$Pvalue,10)[match(gwas$start, summary_stats$start)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
+coloc_plot = bind_rows(
+  GWAS = gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10))),
+  QTL = summary_stats %>% dplyr::select(Pvalue, start) %>% mutate(p_value = -log(Pvalue,10) / max(-log(Pvalue,10))),
+  .id = "Group"
+)
+ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
 
-ggplot(gwas_df_lo, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15)
-
-qplot(-log(as.numeric(gwas_df_lo$P_BOLT_LMM),10), -log(summary_stats$`P-value`,10)[match(gwas_df_lo$start, summary_stats$`Pos (hg19)`)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
-
-common_variants = intersect(gwas_df_lo$start, summary_stats$position)
+common_variants = intersect(gwas$start, summary_stats$start)
 coloc_input = data.frame(
-  beta1 = as.numeric(gwas_df_lo$BETA[match(common_variants, gwas_df_lo$start)]),
-  se1 = as.numeric(gwas_df_lo$SE[match(common_variants, gwas_df_lo$start)]),
-  beta2 = as.numeric(summary_stats$beta[match(common_variants, summary_stats$position)]),
-  se2 = as.numeric(summary_stats$se[match(common_variants, summary_stats$position)])
+  beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
+  se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
+  beta2 = as.numeric(summary_stats$beta[match(common_variants, summary_stats$start)]),
+  se2 = as.numeric(summary_stats$se[match(common_variants, summary_stats$start)])
 )
 
 coloc_wrapper(coloc_input)
