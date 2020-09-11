@@ -298,7 +298,7 @@ eqtlgen = read_tsv("2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-Bon
 
 variant_ix = 9
 
-# check intensity plots for genotyping
+# check intensity/cluster plots for genotyping
 
 snp_mat = getImputedV3GenotypesForVariants(hits$variant[variant_ix])
 attr(snp_mat, "metadata")
@@ -314,6 +314,10 @@ phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
 pheWASForest(phewas %>% filter(p.value < 0.05) %>% dplyr::select(-n) %>% arrange(p.value))
 
 # atrial fibrillation to follow up?
+
+Sys.setenv(R_CONFIG_ACTIVE="imaging")
+gwas_2 = loadGWAS(trait="atrial_fibrillation", type="logistic") # not working
+
 
 # RADIAL - RS9388001 ------------------------------------------------------
 
