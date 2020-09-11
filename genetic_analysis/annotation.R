@@ -437,7 +437,7 @@ phewas = bind_rows(
 
 phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
 pheWASForest(phewas %>% filter(p.value < 0.05) %>% dplyr::select(-n) %>% arrange(p.value))
- 
+
 # pulse rate!
 # add coloc for phenotype data as well
 
@@ -614,8 +614,6 @@ write_tsv(gwas, paste0("data/", hits$variant[variant_ix], "/gwas.txt"))
 
 ggplot(gwas, aes(x=start, y=-log(as.numeric(P_BOLT_LMM),10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
 
-qplot(-log(as.numeric(gwas$P_BOLT_LMM),10), -log(summary_stats$Pvalue,10)[match(gwas$start, summary_stats$start)]) + theme_thesis(15) + xlab("GWAS") + ylab("eQTL")
-
 qtl_dat = vector("list", dim(to_pull)[1])
 coloc_res = qtl_dat
 names(qtl_dat) = apply(to_pull, 1, function(x) paste(x, collapse="_"))
@@ -629,19 +627,23 @@ for(i in 1:length(qtl_dat)) {
   if(to_pull$source[i]=="api") {
     dat = dat %>% rename(pvalue="Pvalue", position="start")
     common_variants = intersect(gwas$start, dat$start)
-    coloc_input = data.frame(
-      beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
-      se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
-      beta2 = as.numeric(dat$beta[match(common_variants, dat$start)]),
-      se2 = as.numeric(dat$se[match(common_variants, dat$start)])
-    )
-    coloc_res[[i]] = coloc_wrapper(coloc_input)
+    if(!to_pull$study[i] %in% c("BLUEPRINT")) { # blueprint does not have se
+      coloc_input = data.frame(
+        beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
+        se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
+        beta2 = as.numeric(dat$beta[match(common_variants, dat$start)]),
+        se2 = as.numeric(dat$se[match(common_variants, dat$start)])
+      )
+      coloc_res[[i]] = coloc_wrapper(coloc_input)
+    }
   }
   
   dat = dat %>% dplyr::select(Pvalue, start) %>% mutate(p_value = -log(Pvalue,10) / max(-log(Pvalue,10)))
   qtl_dat[[i]] = dat
   
 }
+
+lapply(coloc_res, function(x) x$posterior)
 
 coloc_plot = bind_rows(
   gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10)), Group="GWAS"),
