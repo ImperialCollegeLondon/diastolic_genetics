@@ -266,6 +266,8 @@ garfield.plot(paste0(my_measure, ".output.perm"), num_perm=100000, output_prefix
 
 # V2G ---------------------------------------------------------------------
 
+mapping = read_excel("data/HumanGeneList_17Sep2018_workup_betterensembl_list.xlsx")
+
 hits = data.frame(
   variant = c("rs59985551","rs1173727","rs35489511","rs2275950","rs11970286","rs10261575","rs11535974","rs499715","rs528236848","rs9388001","rs2234962","rs11170519","rs369533272"),
   gwas = c(rep("lav",3), rep("long",5), rep("radial",5)),
@@ -549,9 +551,10 @@ gwas_2 = loadGWAS(trait="pulse_rate_adj", type="logistic") # not working
 # RADIAL - RS11170519 -----------------------------------------------------
 
 # get closest gene from open targets genetics
-variant_ix = 10
+variant_ix = 12
 
 v2g = get_V2G_data(hits$id[variant_ix])
+v2g = v2g[!unlist(lapply(v2g$qtls, is_empty)),] # only take anything with qtls
 hits$closest_gene[variant_ix] = v2g$gene[which.min(unlist(lapply(v2g$distances, function(x) x$tissues))),]
 
 # make a granges object for the variant
@@ -570,9 +573,10 @@ region_granges
 # pull in eqtl
 to_pull = data.frame(
   ensembl_id = v2g$gene$id,
-  study = c("eQTLGen", "eQTLGen", "GTEx_V8", NA),
-  tissue = c("Blood", "Blood", "Nerve - Tibial", NA),
-  source = c("eqtlgen", "eqtlgen", "api", "none")
+  gene = mapping$Symbol[match(v2g$gene$id, mapping$ENSEMBL_ID)],
+  study = c("GTEx_V8", "GTEx_V8", "eQTLGen", "GTEx_V8", "BLUEPRINT", "eQTLGen", "eQTLGen"),
+  tissue = c("Cells - Cultured fibroblasts", "Esophagus - Mucosa", "Blood", "Testis", "monocyte", "Blood", "Blood"),
+  source = c("api", "api", "eqtlgen", "api", "api", "eqtlgen", "eqtlgen")
 )
 
 for(i in 1:dim(to_pull)[1]) {
