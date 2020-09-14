@@ -832,19 +832,19 @@ to_pull = data.frame(
 
 for(i in 1:dim(to_pull)[1]) {
   
-  # if(to_pull$source[i]=="api") {
-  #   
-  #   if(to_pull$study[i]=="GTEx_V8") {
-  #     eqtl_df = dplyr::filter(imported_tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])  
-  #   } else {
-  #     eqtl_df = dplyr::filter(tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])  
-  #   }
-  #   column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
-  #   summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=to_pull$ensembl_id[i], column_names)
-  #   print(ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ggtitle(paste(unlist(to_pull[i,]), collapse=", ")))
-  #   write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
-  #   
-  # }
+  if(to_pull$source[i]=="api") {
+
+    if(to_pull$study[i]=="GTEx_V8") {
+      eqtl_df = dplyr::filter(imported_tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])
+    } else {
+      eqtl_df = dplyr::filter(tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])
+    }
+    column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
+    summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=to_pull$ensembl_id[i], column_names)
+    print(ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ggtitle(paste(unlist(to_pull[i,]), collapse=", ")))
+    write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
+
+  }
   
   if(to_pull$source[i]=="eqtlgen") {
     
