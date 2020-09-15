@@ -954,11 +954,11 @@ ggplot(coloc_plot_gwas, aes(x=start, y=p_value, color=Group)) + geom_point(alpha
 
 # LONGITUDINAL - RS2275950 ------------------------------------------------
 
-
 # get closest gene from open targets genetics
-variant_ix = 13
+variant_ix = 4
 
 v2g = get_V2G_data(hits$id[variant_ix])
+v2g = v2g[!unlist(lapply(v2g$qtls, is_empty)),] # only take anything with qtls
 hits$closest_gene[variant_ix] = v2g$gene[which.min(unlist(lapply(v2g$distances, function(x) x$tissues))),]
 
 # make a granges object for the variant
@@ -976,10 +976,11 @@ region_granges
 
 # pull in eqtl
 to_pull = data.frame(
-  ensembl_id = "ENSG00000134779",
-  study = c("CEDAR","Fairfax_2012","GEUVADIS","Fairfax_2014","CEDAR","CEDAR"),
-  tissue = c("B cell","B cell","LCL","monocyte","CD8+ T cell","CD8+ T cell"),
-  source = c("api", "api", "api", "api", "api", "api")
+  ensembl_id = v2g$gene$id,
+  gene = mapping$Symbol[match(v2g$gene$id, mapping$ENSEMBL_ID)],
+  study = c("eQTLGen","eQTLGen","eQTLGen","eQTLGen","Fairfax_2014","eQTLGen","GTEx_V8","eQTLGen","TwinsUK","eQTLGen","GENCORD"),
+  tissue = c("Blood","Blood","Blood","Blood","monocyte","Blood","Skin - Sun Exposed (Lower leg)","Blood","LCL","Blood","fibroblast"),
+  source = c("eqtlgen", "eqtlgen", "eqtlgen", "eqtlgen", "api", "eqtlgen","api","eqtlgen","api","eqtlgen","api")
 )
 
 for(i in 1:dim(to_pull)[1]) {
