@@ -978,8 +978,8 @@ region_granges
 to_pull = data.frame(
   ensembl_id = v2g$gene$id,
   gene = mapping$Symbol[match(v2g$gene$id, mapping$ENSEMBL_ID)],
-  study = c("eQTLGen","eQTLGen","eQTLGen","eQTLGen","Fairfax_2014","eQTLGen","GTEx_V8","eQTLGen","TwinsUK","eQTLGen","GENCORD"),
-  tissue = c("Blood","Blood","Blood","Blood","monocyte","Blood","Skin - Sun Exposed (Lower leg)","Blood","LCL","Blood","fibroblast"),
+  study = c("eQTLGen","eQTLGen","eQTLGen","eQTLGen","Fairfax_2014","eQTLGen","GTEx_V8","eQTLGen","BLUEPRINT","eQTLGen","GENCORD"),
+  tissue = c("Blood","Blood","Blood","Blood","monocyte","Blood","Skin - Sun Exposed (Lower leg)","Blood","monocyte","Blood","fibroblast"),
   source = c("eqtlgen", "eqtlgen", "eqtlgen", "eqtlgen", "api", "eqtlgen","api","eqtlgen","api","eqtlgen","api")
 )
 
