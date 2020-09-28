@@ -2,34 +2,35 @@
 install.packages("data.table")
 
 library(data.table)
-multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
 # load data for multiple linear regression analysis
+multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
-lm_l<-lm(PDSRll~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Assessment_centre, data=multidata)
-co_l<-coef(lm_l, complete=TRUE)
-pval<-anova(lm_l)$`Pr(>F)`
-slml<-summary(lm_l)
+beta_ml<-matrix(0,ncol=30, nrow=11)
+mat_pv<-matrix(0,ncol=30, nrow=11)
+t_BH<-matrix(0,ncol=30,1)
+rsq<-matrix(0,ncol=30,1)
+conflist<-vector(mode="list",length=30)
 
-slml$r.squared # r squared
-confint(lm_l,level=0.95) # confidence intervals
-
-lm_r<-lm(PDSRrr~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Assessment_centre, data=multidata)
-co_r<-coef(lm_r, complete=TRUE)
-pvalr<-anova(lm_r)$`Pr(>F)`
-slmr<-summary(lm_r) 
-
-slmr$r.squared # r squared
-confint(lm_r,level=0.95) # confidence intervals
-
-lm_la<-lm(LAVmaxi~Age+Sex+BSA+SBP+DBP+Pulse_rate+Diabetes+Smoking+Number_Medication+Moderate_activity+Assessment_centre, data=multidata)
-co_la<-coef(lm_la, complete=TRUE)
-pvalla<-anova(lm_la)$`Pr(>F)`
-slmla<-summary(lm_la)
-
-slmla$r.squared # r squared
-confint(lm_la,level=0.95) # confidence intervals
-
+iT<-1
+for (iN in 12:41){
+  data_na<-na.omit(as.data.frame(multidata[,c(1:11,iN)]))
+  cv<-lapply(colnames(data_na)[12], function(x) lm(formula(paste("`",x,"`","~.", sep="")),data=data_na))
+  pval<-summary(cv[[1]])$coefficients[,"Pr(>|t|)"] # get p-values
+  p.cor<-p.adjust(pval,method = "BH") # adjust using Benjamini - Hochberg procedure
+  names(p.cor)<-NULL
+  beta<-as.vector(t(coef(cv[[1]], complete=TRUE)))[-1] # get beta coefficient
+  t_BH[iT]<-get_bh_threshold(pval, 0.05) # get BH threshold
+  smcv<-summary(cv[[1]])
+  rsq[iT]<-smcv$r.squared # rsquared
+  conflist[iT]<-list(confint(cv[[1]],level=0.95)[-1,]) # confidence intervals
+  
+  beta_ml[,iT]<-beta
+  mat_pv[,iT]<-p.cor[-1]
+  iT<-iT+1
+}
+colnames(beta_ml)<-colnames(multidata)[12:41]
+rownames(beta_ml)<-colnames(multidata)[1:11]
 
 ### Multivariate LASSO regresion analysis with stability selection for selecting the non-imaging phenotypes 
 
