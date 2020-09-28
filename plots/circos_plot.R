@@ -1,7 +1,7 @@
 
 install.packages("circlize")
 
-# load beta coefficient matrix
+# load beta coefficient matrix from https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis/data
 multivariate_beta<-as.data.frame(fread("data/multivariate_beta.txt"))
 multivariate_beta<-multivariate_beta[,-1]
 rownames(multivariate_beta)<-colnames(multivariate_beta)
