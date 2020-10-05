@@ -1,6 +1,6 @@
 # Cardiac Phenotype associations Pipeline
 
-## Multivariate analysis using LASSO models with stability selection for selecting the imaging phenotypes
+## Multivariable analysis using LASSO models with stability selection for selecting the imaging phenotypes
 ### Stability selection procedure using 'stabsel'
 
     # load non-imaging phenotype data
@@ -30,7 +30,7 @@
     
     ## Final check for collinearity using the selected variables
 
-    model<-lm(PDSRll~., data=as.data.frame(multivariate_data[,position_stab[,1]]))
+    model<-lm(PDSRll~., data=as.data.frame(multivar_data[,position_stab[,1]]))
     library(mctest)
     imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
     
@@ -80,7 +80,7 @@
 
     library(glmnet)  
     
-    data.train<-as.matrix(multivariate_data_train[,position_stab[,1]])
+    data.train<-as.matrix(multivar_data_train[,position_stab[,1]])
 
     lambda_min<-matrix(0,ncol = 1, nrow = ncol(data.train))
     for (iT in 1:ncol(data.train)){
@@ -94,7 +94,7 @@
     
     # LASSO model using glmnet 
     
-    data_selected<-as.matrix(multivariate_data[,position_stab[,1]])
+    data_selected<-as.matrix(multivar_data_test[,position_stab[,1]])
     data_selected<-na.omit(data_selected)
     beta_gl<-matrix(0,ncol = ncol(data_selected), nrow = ncol(data_selected)-1)
     for (iS in 1:ncol(data_selected)){
@@ -113,8 +113,8 @@
 
     colnames(beta_gl)<-colnames(data_selected)
     beta_gl<-as.data.frame(beta_gl)
-    multivariate_beta<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
-    multivariate_beta<-as.data.frame(multivariate_beta)
+    multivar_beta<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
+    multivar_beta<-as.data.frame(multivar_beta)
 
 
 ## Circos plot  
