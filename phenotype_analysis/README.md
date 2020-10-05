@@ -113,8 +113,8 @@
 
     colnames(beta_gl)<-colnames(data_selected)
     beta_gl<-as.data.frame(beta_gl)
-    multivar_beta<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
-    multivar_beta<-as.data.frame(multivar_beta)
+    multivar_lasso<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
+    multivar_lasso<-as.data.frame(multivar_lasso)
 
 
 ## Circos plot  
