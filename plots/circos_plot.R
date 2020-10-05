@@ -2,14 +2,14 @@
 install.packages("circlize")
 
 # load beta coefficient matrix from https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis/data
-multivar_beta<-as.data.frame(fread("data/multivar_beta.txt"))
-multivar_beta<-multivar_beta[,-1]
-rownames(multivar_beta)<-colnames(multivar_beta)
-multivar_beta<-as.matrix(t(multivar_beta)) # transpose matrx to show linkages by column for circos plotting
+multivar_lasso<-as.data.frame(fread("multivar_lasso.txt"))
+multivar_lasso<-multivar_lasso[,-1]
+rownames(multivar_lasso)<-colnames(multivar_lasso)
+multivar_lasso<-as.matrix(t(multivar_lasso)) # transpose matrx to show linkages by column for circos plotting
 
 library(circlize)
-all_states = rownames(multivar_beta)
-n_states = nrow(multivar_beta)
+all_states = rownames(multivar_lasso)
+n_states = nrow(multivar_lasso)
 state_col = c("Age" = "darkgreen",    "Sex" = "darkgreen",
               "BSA" = "darkgreen",  "SBP" = "darkgreen",
               "DBP" = "darkgreen",    "Pulse rate" = "darkgreen",
@@ -30,17 +30,17 @@ all_states = names(state_col)
 
 # one for rows and one for columns
 state_col2 = c(state_col, state_col)
-names(state_col2) = c(rownames(multivar_beta), colnames(multivar_beta))
+names(state_col2) = c(rownames(multivar_lasso), colnames(multivar_lasso))
 
-colmat = rep(state_col2[rownames(multivar_beta)], n_states)
+colmat = rep(state_col2[rownames(multivar_lasso)], n_states)
 colmat = rgb(t(col2rgb(colmat)), maxColorValue = 255)
 
 colmat = paste0(colmat, "A0")
-dim(colmat) = dim(multivar_beta)
+dim(colmat) = dim(multivar_lasso)
 
 circos.par(cell.padding = c(0, 0, 0, 0), points.overflow.warning = FALSE) # initialise circos plot
 
-multivar_chord = chordDiagram(multivar_beta, col = colmat, grid.col = state_col2,
+multivar_chord = chordDiagram(multivar_lasso, col = colmat, grid.col = state_col2,
                        directional = TRUE, annotationTrack = "grid", 
                        big.gap = 10, small.gap = 1) # plot circos for multivariate_beta
 circos.clear() # clear this cirsos plot
@@ -68,9 +68,9 @@ vpall<-val[pval]
 multivar_chord$value1[pval]<-vpall
 multivar_chord$value2[pval]<-vpall
 
-colmat = rep(state_col2[rownames(multivar_beta)], n_states)
+colmat = rep(state_col2[rownames(multivar_lasso)], n_states)
 colmat = rgb(t(col2rgb(colmat)), maxColorValue = 255)
-dim(colmat) = dim(multivar_beta)
+dim(colmat) = dim(multivar_lasso)
 
 multivar_chord$col[-pval]<-paste0(colmat[-pval], "20") # add faint colour in the links with betas < 0.4
 head(multivar_chord)
