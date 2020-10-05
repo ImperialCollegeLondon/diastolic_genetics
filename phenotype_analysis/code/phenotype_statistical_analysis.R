@@ -31,7 +31,7 @@ for (iN in 12:41){
 colnames(beta_ml)<-colnames(multidata)[12:41]
 rownames(beta_ml)<-colnames(multidata)[1:11]
 
-### Multivariate LASSO regresion analysis with stability selection for selecting the non-imaging phenotypes 
+### Multivariable LASSO regresion analysis with stability selection for selecting the non-imaging phenotypes 
 
 install.packages("glmnet")
 install.packages("stabs")
@@ -114,8 +114,8 @@ for (iS in 1:ncol(data_selected)){
 
 colnames(beta_gl)<-colnames(data_selected)
 beta_gl<-as.data.frame(beta_gl)
-multivar_beta<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
-multivar_beta<-as.data.frame(multivar_beta)
-write.table(multivar_beta, "multivar_beta.txt", row.names = T, col.names = T) # save beta coefficients
+multivar_lasso<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
+multivar_lasso<-as.data.frame(multivar_lasso)
+write.table(multivar_lasso, "multivar_lasso.txt", row.names = T, col.names = T) # save beta coefficients from LASSO regression analysis
 
 # END
