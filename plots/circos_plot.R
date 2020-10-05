@@ -77,7 +77,7 @@ head(multivar_chord)
 
 circos.par(gap.degree=1,canvas.xlim=c(-0.6,0.6), canvas.ylim=c(-1.2,1.2)) # initialise circosplot
 
-chordDiagram(multivar_chord, col = multivariate_chord$col, grid.col = state_col2,
+chordDiagram(multivar_chord, col = multivar_chord$col, grid.col = state_col2,
              directional = TRUE, annotationTrack = c("grid"), link.rank = order(multivar_chord$col),
              big.gap = 10, small.gap = 1,preAllocateTracks = list(track.height = mm_h(5))) # plot circos for multivar_chord
 
