@@ -713,16 +713,16 @@ for(i in 1:length(gwas_dat)) {
   gwas_comp = makeGRangesFromDataFrame(gwas_comp, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
   gwas_comp = lift_over(gwas_comp, dir="37_to_38")
   
-  common_variants = intersect(gwas$start, gwas_comp$start)
-  coloc_input = data.frame(
-    beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
-    se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
-    beta2 = as.numeric(gwas_comp$ESTIMATE[match(common_variants, gwas_comp$start)]),
-    se2 = as.numeric(gwas_comp$SE[match(common_variants, gwas_comp$start)])
-  )
-  coloc_res_gwas[[i]] = coloc_wrapper(coloc_input)
+  # common_variants = intersect(gwas$start, gwas_comp$start)
+  # coloc_input = data.frame(
+  #   beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
+  #   se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
+  #   beta2 = as.numeric(gwas_comp$ESTIMATE[match(common_variants, gwas_comp$start)]),
+  #   se2 = as.numeric(gwas_comp$SE[match(common_variants, gwas_comp$start)])
+  # )
+  # coloc_res_gwas[[i]] = coloc_wrapper(coloc_input)
   
-  gwas_comp = gwas_comp %>% dplyr::select(P, start) %>% mutate(p_value = -log(P,10) / max(-log(P,10)))
+  gwas_comp = gwas_comp %>% dplyr::select(P, start) %>% mutate(p_value_scaled = -log(P,10) / max(-log(P,10)), p_value = -log(P,10))
   gwas_dat[[i]] = gwas_comp
 }
 
