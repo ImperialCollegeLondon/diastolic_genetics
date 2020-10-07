@@ -726,12 +726,6 @@ for(i in 1:length(gwas_dat)) {
   gwas_dat[[i]] = gwas_comp
 }
 
-coloc_plot_gwas = bind_rows(
-  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10)), Group="GWAS"),
-  bind_rows(gwas_dat, .id="Group")
-)
-ggplot(coloc_plot_gwas, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
-
 win = 1e6
 load("~/links/bullseye/r_data/t_list.RData")
 t_list_filtered = t_list %>% filter(chromosome_name==hits$chr[variant_ix], exon_chrom_start > hits$pos_38[variant_ix]-win, exon_chrom_start < hits$pos_38[variant_ix]+win)
@@ -747,6 +741,16 @@ p3
 dir.create(paste0("tex/images/", hits$variant[variant_ix]))
 pdf(file=paste0("tex/images/", hits$variant[variant_ix], "/coloc_plot.pdf"))
 ggbio::tracks(p1, p2, p3, heights=c(1,1,1))
+dev.off()
+
+coloc_plot_gwas = bind_rows(
+  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value_scaled = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10)), Group="GWAS", p_value = -log(P_BOLT_LMM,10)),
+  bind_rows(gwas_dat, .id="Group")
+)
+p4 = ggplot(coloc_plot_gwas, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
+p5 = ggplot(coloc_plot_gwas, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
+pdf(file=paste0("tex/images/", hits$variant[variant_ix], "/coloc_plot_gwas.pdf"))
+ggbio::tracks(p4, p5, p3, heights=c(1,1,1))
 dev.off()
 
 
