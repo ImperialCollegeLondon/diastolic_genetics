@@ -16,6 +16,27 @@ load_all("~/links/bullseye/")
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
 
+# UK DIGITAL HEART REPLICATION --------------------------------------------
+
+# get the 13 lead snps
+
+lead_snps = lapply(input_dat[c(2,5,8)], function(x) x %>% group_by(CHR) %>% dplyr::slice(which.min(P_BOLT_LMM)))
+lead_snps = bind_rows(lead_snps, .id="GWAS")
+
+replace_snp = input_dat$long_full %>% filter(CHR=="18") %>% arrange(P_BOLT_LMM)
+lead_snps[8,] = cbind("lav_full", replace_snp[2,])
+
+roots = c("LAV","long_PDSR","radial_PDSR")
+win = 1e5
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", roots[3], "_full.bgen.stats"))
+lead_ix = 1
+
+# get the list of snps in ld > 0.8
+background_snps = stats %>% dplyr::filter(CHR==lead_snps$CHR[lead_ix], BP > lead_snps$BP[lead_ix]-win, BP < lead_snps$BP[lead_ix]+win) %>% dplyr::select(SNP)
+
+search_proxies(lead_snps$SNP[1])
+
+
 # SIGNIFICANT HITS --------------------------------------------------------
 
 # /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results
@@ -514,16 +535,16 @@ for(i in 1:length(gwas_dat)) {
   gwas_comp = makeGRangesFromDataFrame(gwas_comp, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
   gwas_comp = lift_over(gwas_comp, dir="37_to_38")
   
-  common_variants = intersect(gwas$start, gwas_comp$start)
-  coloc_input = data.frame(
-    beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
-    se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
-    beta2 = as.numeric(gwas_comp$ESTIMATE[match(common_variants, gwas_comp$start)]),
-    se2 = as.numeric(gwas_comp$SE[match(common_variants, gwas_comp$start)])
-  )
-  coloc_res_gwas[[i]] = coloc_wrapper(coloc_input)
+  # common_variants = intersect(gwas$start, gwas_comp$start)
+  # coloc_input = data.frame(
+  #   beta1 = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
+  #   se1 = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
+  #   beta2 = as.numeric(gwas_comp$ESTIMATE[match(common_variants, gwas_comp$start)]),
+  #   se2 = as.numeric(gwas_comp$SE[match(common_variants, gwas_comp$start)])
+  # )
+  # coloc_res_gwas[[i]] = coloc_wrapper(coloc_input)
   
-  gwas_comp = gwas_comp %>% dplyr::select(P, start) %>% mutate(p_value = -log(P,10) / max(-log(P,10)))
+  gwas_comp = gwas_comp %>% dplyr::select(P, start) %>% mutate(p_value_scaled = -log(P,10) / max(-log(P,10)), p_value = -log(P,10))
   gwas_dat[[i]] = gwas_comp
 }
 
@@ -545,7 +566,7 @@ ggbio::tracks(p1, p2, p3, heights=c(1,1,1))
 dev.off()
 
 coloc_plot_gwas = bind_rows(
-  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10)), Group="GWAS"),
+  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value_scaled = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10)), Group="GWAS", p_value = -log(P_BOLT_LMM,10)),
   bind_rows(gwas_dat, .id="Group")
 )
 ggplot(coloc_plot_gwas, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
