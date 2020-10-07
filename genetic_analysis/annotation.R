@@ -501,7 +501,6 @@ coloc_plot = coloc_plot %>% group_by(Group) %>% mutate(p_value_scaled=scale_this
 p1 = ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
 p2 = ggplot(coloc_plot, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
 
-
 # phewas plot?
 # run phewas and pull signal for anything significant and add to colocalisation step?
 
@@ -669,10 +668,17 @@ for(i in 1:length(qtl_dat)) {
 lapply(coloc_res, function(x) x$posterior)
 
 coloc_plot = bind_rows(
-  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10) / max(-log(P_BOLT_LMM,10)), Group="GWAS"),
+  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10), Group="GWAS"),
   bind_rows(qtl_dat, .id="Group")
 )
-ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
+
+scale_this <- function(x) {
+  return(x / max(x))
+}
+
+coloc_plot = coloc_plot %>% group_by(Group) %>% mutate(p_value_scaled=scale_this(p_value))
+p1 = ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
+p2 = ggplot(coloc_plot, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
 
 # phewas plot?
 # run phewas and pull signal for anything significant and add to colocalisation step?
@@ -725,6 +731,23 @@ coloc_plot_gwas = bind_rows(
   bind_rows(gwas_dat, .id="Group")
 )
 ggplot(coloc_plot_gwas, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("")
+
+win = 1e6
+load("~/links/bullseye/r_data/t_list.RData")
+t_list_filtered = t_list %>% filter(chromosome_name==hits$chr[variant_ix], exon_chrom_start > hits$pos_38[variant_ix]-win, exon_chrom_start < hits$pos_38[variant_ix]+win)
+pick_t = t_list_filtered %>% group_by(external_gene_name) %>% summarise(pick_t=ensembl_transcript_id[1]) %>% dplyr::select(pick_t) %>% unlist()
+t_list_filtered = t_list_filtered %>% dplyr::filter(ensembl_transcript_id %in% pick_t)
+t_list_filtered$strand = "*"
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+
+p3 = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(10, angle_45=FALSE) + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) 
+p3
+dir.create(paste0("tex/images/", hits$variant[variant_ix]))
+pdf(file=paste0("tex/images/", hits$variant[variant_ix], "/coloc_plot.pdf"))
+ggbio::tracks(p1, p2, p3, heights=c(1,1,1))
+dev.off()
 
 
 # RADIAL - RS11170519 -----------------------------------------------------
