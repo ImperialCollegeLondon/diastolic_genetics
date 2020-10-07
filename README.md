@@ -10,19 +10,19 @@ Left ventricular diastolic function is a key determinant of ventricular pressure
 
 The repository is composed of different sections 
  
-* [Cardiac Image analysis](https://github.com/baiwenjia/ukbb_cardiac) 
+* [Cardiac Image analysis (ukbb_cardiac)](https://github.com/baiwenjia/ukbb_cardiac)   
 Automated pipeline for image segmentation and motion analysis.
 
-* [Peak detection](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/peak_detection) Automated peak detection alghortim to obtain the diastolic peak.
-. 
-
-* [Phenotype anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis) 
+* [Peak detection](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/peak_detection)  
+Automated peak detection alghortim to obtain the diastolic peak.
+ 
+* [Phenotype anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis)   
 Cardiac phenotype pipeline to investigate the relationships between the myocardial diastolic function parameters and the non-imaging clinical data.
 
-* [Genetic anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/genetic_analysis)
+* [Genetic anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/genetic_analysis)  
 Genome-wide association study (GWAS) analysis for the derived diastolic function traits.
 
-* [Plots](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/plots)
+* [Plots](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/plots)  
 Scatter and box plots of diastolic function.
 
 

@@ -1,15 +1,15 @@
 
 install.packages("circlize")
 
-# load beta coefficient matrix
-multivariate_beta<-as.data.frame(fread("data/multivariate_beta.txt"))
-multivariate_beta<-multivariate_beta[,-1]
-rownames(multivariate_beta)<-colnames(multivariate_beta)
-multivariate_beta<-as.matrix(t(multivariate_beta)) # transpose matrx to show linkages by column for circos plotting
+# load beta coefficient matrix from https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis/data
+multivar_lasso<-as.data.frame(fread("multivar_lasso.txt"))
+multivar_lasso<-multivar_lasso[,-1]
+rownames(multivar_lasso)<-colnames(multivar_lasso)
+multivar_lasso<-as.matrix(t(multivar_lasso)) # transpose matrx to show linkages by column for circos plotting
 
 library(circlize)
-all_states = rownames(multivariate_beta)
-n_states = nrow(multivariate_beta)
+all_states = rownames(multivar_lasso)
+n_states = nrow(multivar_lasso)
 state_col = c("Age" = "darkgreen",    "Sex" = "darkgreen",
               "BSA" = "darkgreen",  "SBP" = "darkgreen",
               "DBP" = "darkgreen",    "Pulse rate" = "darkgreen",
@@ -18,7 +18,7 @@ state_col = c("Age" = "darkgreen",    "Sex" = "darkgreen",
               "Assessment centre" = "darkgreen", "HbA1c" = "#377EB8",
               "C-reactive protein" = "#377EB8",  "HDL" = "#377EB8",
               "Glucose" = "#377EB8", "Triglycerides" = "#377EB8","eGFR cystatin" = "#377EB8",
-              "Cardiac MRI index" = "#E41A1C",    "PDSRll" = "#E41A1C",
+              "Cardiac index" = "#E41A1C",    "PDSRll" = "#E41A1C",
               "PDSRrr" = "#E41A1C",  "Err Global" = "#E41A1C",
               "Ell Global" = "#E41A1C",    "AAo distensibility" = "#E41A1C",
               "DAo distensibility" = "#E41A1C",     "LVSVi" = "#E41A1C",
@@ -30,56 +30,56 @@ all_states = names(state_col)
 
 # one for rows and one for columns
 state_col2 = c(state_col, state_col)
-names(state_col2) = c(rownames(multivariate_beta), colnames(multivariate_beta))
+names(state_col2) = c(rownames(multivar_lasso), colnames(multivar_lasso))
 
-colmat = rep(state_col2[rownames(multivariate_beta)], n_states)
+colmat = rep(state_col2[rownames(multivar_lasso)], n_states)
 colmat = rgb(t(col2rgb(colmat)), maxColorValue = 255)
 
 colmat = paste0(colmat, "A0")
-dim(colmat) = dim(multivariate_beta)
+dim(colmat) = dim(multivar_lasso)
 
 circos.par(cell.padding = c(0, 0, 0, 0), points.overflow.warning = FALSE) # initialise circos plot
 
-multivariate_chord = chordDiagram(multivariate_beta, col = colmat, grid.col = state_col2,
+multivar_chord = chordDiagram(multivar_lasso, col = colmat, grid.col = state_col2,
                        directional = TRUE, annotationTrack = "grid", 
                        big.gap = 10, small.gap = 1) # plot circos for multivariate_beta
 circos.clear() # clear this cirsos plot
 
-head(multivariate_chord)
-val<-multivariate_chord$value2
+head(multivar_chord)
+val<-multivar_chord$value2
 p<-which(sign(val)==-1) # make all associations absolute
 val[p]<-(-val[p])
-multivariate_chord$value1<-val
-multivariate_chord$value2<-val
+multivar_chord$value1<-val
+multivar_chord$value2<-val
 pv<-which(val>=0.4)
-pl<-which(multivariate_chord$rn=='PDSRll')
-pr<-which(multivariate_chord$rn=='PDSRrr')
-pa<-which(multivariate_chord$rn=='LAVmaxi')
+pl<-which(multivar_chord$rn=='PDSRll')
+pr<-which(multivar_chord$rn=='PDSRrr')
+pa<-which(multivar_chord$rn=='LAVmaxi')
 pall<-c(pl,pr,pa)
-pl<-which(multivariate_chord$cn=='PDSRll')
-pr<-which(multivariate_chord$cn=='PDSRrr')
-pa<-which(multivariate_chord$cn=='LAVmaxi')
+pl<-which(multivar_chord$cn=='PDSRll')
+pr<-which(multivar_chord$cn=='PDSRrr')
+pa<-which(multivar_chord$cn=='LAVmaxi')
 pall2<-c(pl,pr,pa)
 pp<-c(pall,pall2)
 pval<-c(pp,pv) # include only the positions with beta coefficient > 0.4 apart from the associations 
                # between PDSRll, PDSRrr and LAVmaxi and all other phenotypes.
 pval<-unique(pval)
 vpall<-val[pval]
-multivariate_chord$value1[pval]<-vpall
-multivariate_chord$value2[pval]<-vpall
+multivar_chord$value1[pval]<-vpall
+multivar_chord$value2[pval]<-vpall
 
-colmat = rep(state_col2[rownames(multivariate_beta)], n_states)
+colmat = rep(state_col2[rownames(multivar_lasso)], n_states)
 colmat = rgb(t(col2rgb(colmat)), maxColorValue = 255)
-dim(colmat) = dim(multivariate_beta)
+dim(colmat) = dim(multivar_lasso)
 
-multivariate_chord$col[-pval]<-paste0(colmat[-pval], "20") # add faint colour in the links with betas < 0.4
-head(multivariate_chord)
+multivar_chord$col[-pval]<-paste0(colmat[-pval], "20") # add faint colour in the links with betas < 0.4
+head(multivar_chord)
 
 circos.par(gap.degree=1,canvas.xlim=c(-0.6,0.6), canvas.ylim=c(-1.2,1.2)) # initialise circosplot
 
-chordDiagram(multivariate_chord, col = multivariate_chord$col, grid.col = state_col2,
-             directional = TRUE, annotationTrack = c("grid"), link.rank = order(multivariate_chord$col),
-             big.gap = 10, small.gap = 1,preAllocateTracks = list(track.height = mm_h(5))) # plot circos for multivariate_chord
+chordDiagram(multivar_chord, col = multivar_chord$col, grid.col = state_col2,
+             directional = TRUE, annotationTrack = c("grid"), link.rank = order(multivar_chord$col),
+             big.gap = 10, small.gap = 1,preAllocateTracks = list(track.height = mm_h(5))) # plot circos for multivar_chord
 
 ## Add sector numbers. The numbers in each sector represent the sum of all coefficients for each specific variable. (Optional)
 #
@@ -96,12 +96,12 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
 }, bg.border = NA)
 
 # Add small circular rectangles to represent the proportions of different transitions in each variable
-for(i in seq_len(nrow(multivariate_chord))) {
-  if(multivariate_chord$value1[i] > 0) {
-    circos.rect(multivariate_chord[i, "x1"], -mm_y(1), 
-                multivariate_chord[i, "x1"] - abs(multivariate_chord[i, "value1"]), -mm_y(2), 
-                col = state_col2[multivariate_chord$cn[i]], border = state_col2[multivariate_chord$cn[i]],
-                sector.index = multivariate_chord$rn[i], track.index = 2)
+for(i in seq_len(nrow(multivar_chord))) {
+  if(multivar_chord$value1[i] > 0) {
+    circos.rect(multivar_chord[i, "x1"], -mm_y(1), 
+                multivar_chord[i, "x1"] - abs(multivar_chord[i, "value1"]), -mm_y(2), 
+                col = state_col2[multivar_chord$cn[i]], border = state_col2[multivar_chord$cn[i]],
+                sector.index = multivar_chord$rn[i], track.index = 2)
   }
 }
 
