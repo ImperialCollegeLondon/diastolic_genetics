@@ -914,9 +914,9 @@ region_granges
 # pull in eqtl
 to_pull = data.frame(
   ensembl_id = "ENSG00000134779",
-  study = c("CEDAR","Fairfax_2012","GEUVADIS","Fairfax_2014","CEDAR","CEDAR"),
-  tissue = c("B cell","B cell","LCL","monocyte","CD8+ T cell","CD8+ T cell"),
-  source = c("api", "api", "api", "api", "api", "api")
+  study = c("GEUVADIS"),
+  tissue = c("LCL"),
+  source = c("api")
 )
 
 for(i in 1:dim(to_pull)[1]) {
