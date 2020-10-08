@@ -122,7 +122,7 @@ coloc_plot_gwas = bind_rows(
   bind_rows(gwas_dat, .id="Group")
 )
 
-save(coloc_plot_gwas, file=paste0("data/", hits$variant[variant_ix], ".coloc_plot_gwas.RData"))
+save(coloc_plot_gwas, file=paste0("data/", hits$variant[variant_ix], "/coloc_plot_gwas.RData"))
 load(file=paste0("data/", hits$variant[variant_ix], ".coloc_plot_gwas.RData"))
 
 p4 = ggplot(coloc_plot_gwas, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
