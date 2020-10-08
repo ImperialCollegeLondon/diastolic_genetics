@@ -65,11 +65,11 @@ coloc_plot = bind_rows(
 )
 
 coloc_plot = coloc_plot %>% group_by(Group) %>% mutate(p_value_scaled=scale_this(p_value))
-p1 = ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
-p2 = ggplot(coloc_plot, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
-
 save(coloc_plot, file=paste0("data/", hits$variant[variant_ix], "/coloc_plot.RData"))
 load(file=paste0("data/", hits$variant[variant_ix], "/coloc_plot.RData"))
+
+p1 = ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
+p2 = ggplot(coloc_plot, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
 
 
 # TRAITS OF INTEREST ------------------------------------------------------
