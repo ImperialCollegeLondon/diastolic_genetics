@@ -22,7 +22,7 @@ scale_this <- function(x) {
 # VARIANT DATA ------------------------------------------------------------
 
 load("r_data/hits.RData")
-variant_ix = 5
+variant_ix = 6
 list.files(paste0("data/", hits$variant[variant_ix]))
 snp_pos = hits$pos_38[variant_ix]
 win = 2e6
@@ -36,13 +36,74 @@ region_granges = GenomicRanges::GRanges(
   strand = "*")
 region_granges
 
+if(!dir.exists(paste0("data/", hits$variant[variant_ix]))) {
+  dir.create(paste0("data/", hits$variant[variant_ix]))
+}
+
+
+# eQTL GET ----------------------------------------------------------------
+
+source("eqtl_data.R")
+
+for(i in 1:dim(to_pull)[1]) {
+  
+  if(to_pull$source[i]=="api") {
+    
+    if(to_pull$study[i]=="GTEx_V8") {
+      eqtl_df = dplyr::filter(imported_tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])
+    } else {
+      eqtl_df = dplyr::filter(tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])
+    }
+    column_names = colnames(readr::read_tsv(eqtl_df$ftp_path[1], n_max=1))
+    summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=to_pull$ensembl_id[i], column_names)
+    print(ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ggtitle(paste(unlist(to_pull[i,]), collapse=", ")))
+    write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
+    
+  }
+  
+  if(to_pull$source[i]=="eqtlgen") {
+    
+    summary_stats = eqtlgen %>% filter(Gene==to_pull$ensembl_id[i])
+    summary_stats = makeGRangesFromDataFrame(summary_stats, keep.extra.columns=TRUE, start.field="SNPPos", end.field="SNPPos", seqnames.field="SNPChr")
+    summary_stats = lift_over(summary_stats, dir="37_to_38")
+    write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
+    
+  }
+}
+
+
+# PHEWAS ------------------------------------------------------------------
+
+snp_mat = getImputedV3GenotypesForVariants(hits$variant[variant_ix])
+attr(snp_mat, "metadata")
+snpStats::col.summary(snp_mat)
+geno_data = getTibbleFromSnpMatrix(snp_mat)
+
+# compute associations
+
+phewas = bind_rows(
+  getPheWASResults(geno_data %>% dplyr::select(SID, !!as.name(hits$variant[variant_ix])), slurm=F, cores=8),
+  getQuantPheWASResults(geno_data %>% dplyr::select(SID, !!as.name(hits$variant[variant_ix])))
+) %>% tbl_df()
+
+phewas %>% arrange(p.value) %>% filter(p.value < 0.05) %>% View()
+pheWASForest(phewas %>% filter(p.value < 0.05) %>% dplyr::select(-n) %>% arrange(p.value))
+
+save(phewas, file=paste0("data/", hits$variant[variant_ix], "/phewas.RData"))
+load(file=paste0("data/", hits$variant[variant_ix], "/phewas.RData"))
+
 
 # IMAGING REGION ----------------------------------------------------------
 
+gwas = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
+gwas = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
+gwas = lift_over(gwas, dir="37_to_38")
+
+write_tsv(gwas, paste0("data/", hits$variant[variant_ix], "/gwas.txt"))
 gwas = read_tsv(paste0("data/", hits$variant[variant_ix], "/gwas.txt"))
 
 
-# EQTL DATA ---------------------------------------------------------------
+# eQTL LOAD ---------------------------------------------------------------
 
 source("eqtl_data.R")
 
