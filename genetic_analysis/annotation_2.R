@@ -28,7 +28,7 @@ eqtlgen = read_tsv("2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-Bon
 # VARIANT DATA ------------------------------------------------------------
 
 load("r_data/hits.RData")
-variant_ix = 6
+variant_ix = 7
 list.files(paste0("data/", hits$variant[variant_ix]))
 snp_pos = hits$pos_38[variant_ix]
 win = 2e6
@@ -71,7 +71,7 @@ for(i in 1:dim(to_pull[[variant_ix]])[1]) {
     
     summary_stats = eqtlgen %>% filter(Gene==to_pull[[variant_ix]]$ensembl_id[i])
     summary_stats = makeGRangesFromDataFrame(summary_stats, keep.extra.columns=TRUE, start.field="SNPPos", end.field="SNPPos", seqnames.field="SNPChr")
-    summary_stats = lift_over(summary_stats, dir="37_to_38")
+    summary_stats = lift_over(summary_stats, dir="37_to_38", chain_loc="data/")
     write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull[[variant_ix]]$ensembl_id[i], "_", to_pull[[variant_ix]]$study[i], "_", to_pull[[variant_ix]]$tissue[i], ".txt"))
     
   }
