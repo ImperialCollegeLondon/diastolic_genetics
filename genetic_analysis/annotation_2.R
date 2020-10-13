@@ -10,6 +10,7 @@ require(rtracklayer)
 require(httr)
 require(org.Hs.eg.db)
 require(readxl)
+require(biomaRt)
 load_all("~/links/bullseye/")
 
 mapping = id_mapping()
@@ -27,7 +28,7 @@ eqtlgen = read_tsv("2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-Bon
 # VARIANT DATA ------------------------------------------------------------
 
 load("r_data/hits.RData")
-variant_ix = 13
+variant_ix = 6
 list.files(paste0("data/", hits$variant[variant_ix]))
 snp_pos = hits$pos_38[variant_ix]
 win = 2e6
