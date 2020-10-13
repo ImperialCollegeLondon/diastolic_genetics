@@ -58,8 +58,7 @@
     Glucose                        1.3148         0
     Triglycerides                  1.4476         0
     `eGFR cystatin`                1.4778         0
-    `Cardiac MRI index`            3.9446         0
-    PDSRrr                         2.1762         0
+     PDSRrr                         2.1762         0
     `Err Global`                   2.6223         0
     `Ell Global`                   1.5321         0
     `AAo distensibility`           2.9105         0
@@ -69,6 +68,7 @@
     LAVmini                        3.8502         0
     LVEF                           2.8855         0
     LVCO                           3.7458         0
+    LVCI                           3.9446         0
     RVSVi                          2.8715         0
 
 
