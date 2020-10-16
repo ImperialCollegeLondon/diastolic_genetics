@@ -61,11 +61,6 @@ multivar_data <- read.table("multivar_datatable.txt", header = TRUE) # load the 
 multivar_data_train <- read.table("multivar_train_datatable.txt", header = TRUE) # load the training dataset
 multivar_data_test <- read.table("multivar_test_datatable.txt", header = TRUE) # load the test dataset
 colnames(multivar_data_train)<-colnames(multivar_data)
-covar <- read.table("cov.txt", header = TRUE) # the position of all non-imaging covariates
-pos_pheno <- read.table("fit.txt", header = TRUE) # the position of imaging covariates
-## load data for training and for analysis
-## covar: position of the covariates to bind with position of phenotypes for analysis
-position_stab<-rbind(covar,pos_pheno)
 
 ## Final check for collinearity using the selected variables
 
@@ -74,11 +69,12 @@ install.packages("mctest")
 model<-lm(`PDSRll (s-1)`~., data=as.data.frame(multivar_data[,position_stab[,1]]))
 library(mctest)
 imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
+# check for multicollinearity and select the phenotypes for analysis
 
-# Apply LASSO regression
+             # Apply LASSO regression
 
 library(glmnet)  
-
+# position_stab: the position of imaging and non-imaging phenotypes chosen after checking for colinearity
 # cv.glmnet to train for the lambda parameter
 data.train<-as.matrix(multivar_data_train[,position_stab[,1]])
 data.train<-na.omit(data.train)
