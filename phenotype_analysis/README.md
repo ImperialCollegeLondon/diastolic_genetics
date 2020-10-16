@@ -1,6 +1,6 @@
 # Cardiac Phenotype associations Pipeline
 
-## Multivariable analysis using LASSO models with stability selection for selecting the imaging phenotypes
+## Multivariable analysis using LASSO models with stability selection for selecting the phenotypes
 ### Stability selection procedure using 'stabsel'
 
     # load non-imaging phenotype data
@@ -24,9 +24,7 @@
  ### LASSO models using 'glmnet'. The parameter of lambda.min was tuned by a 10-fold cross-validation method using 'cv.glmnet' on a training set (~67% of the original dataset).
 
    
-    ## load data for training and for analysis
-    ## covar: position of the covariates to bind with position of phenotypes for analysis
-    position_stab<-rbind(covar,pos_pheno)
+    ## position_stab: position of phenotypes for analysis
     
     ## Final check for collinearity using the selected variables
 
