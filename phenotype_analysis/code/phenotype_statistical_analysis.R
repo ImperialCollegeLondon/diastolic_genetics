@@ -66,7 +66,7 @@ colnames(multivar_data_train)<-colnames(multivar_data)
 
 install.packages("mctest")
 
-model<-lm(`PDSRll (s-1)`~., data=as.data.frame(multivar_data[,position_stab[,1]]))
+model<-lm(`PDSRll (s-1)`~., data=as.data.frame(multivar_data[,pos_pheno[,1]]))
 library(mctest)
 imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
 # check for multicollinearity and select the phenotypes for analysis
