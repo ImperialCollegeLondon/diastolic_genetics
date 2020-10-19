@@ -18,7 +18,8 @@ to_pull = list(
     ensembl_id = c("ENSG00000157259"),
     gene = "GATAD1",
     study = c("GTEx_V8"),
-    tissue = c("Thyroid")
+    tissue = c("Thyroid"),
+    source = c("api")
   ),
   rs2275950 = data.frame(
     ensembl_id = c("ENSG00000158006","ENSG00000169442","ENSG00000130695","ENSG00000117632","ENSG00000175087" ,"ENSG00000142675","ENSG00000158014","ENSG00000117676","ENSG00000158022","ENSG00000142669","ENSG00000158008"),
