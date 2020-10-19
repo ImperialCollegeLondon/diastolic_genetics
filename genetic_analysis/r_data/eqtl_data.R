@@ -11,7 +11,8 @@ to_pull = list(
     ensembl_id = c("ENSG00000113389"),
     gene = "NPR3",
     study = c("GTEx_V8"),
-    tissue = c("Nerve - Tibial")
+    tissue = c("Nerve - Tibial"),
+    source = c("api")
   ),
   rs35489511 = data.frame(
     ensembl_id = c("ENSG00000157259"),
