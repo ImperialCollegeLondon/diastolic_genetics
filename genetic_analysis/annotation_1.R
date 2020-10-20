@@ -24,17 +24,40 @@ lead_snps = lapply(input_dat[c(2,5,8)], function(x) x %>% group_by(CHR) %>% dply
 lead_snps = bind_rows(lead_snps, .id="GWAS")
 
 replace_snp = input_dat$long_full %>% filter(CHR=="18") %>% arrange(P_BOLT_LMM)
-lead_snps[8,] = cbind("lav_full", replace_snp[2,])
+lead_snps[8,] = cbind("long_full", replace_snp[2,])
+lead_snps$root = c(rep("LAV",3), rep("long_PDSR",5), rep("radial_PDSR",5))
 
-roots = c("LAV","long_PDSR","radial_PDSR")
-win = 1e5
-stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", roots[3], "_full.bgen.stats"))
-lead_ix = 1
+win = 1e4
+stats_lav = read_tsv("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats")
+stats_long = read_tsv("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_long_PDSR_full.bgen.stats")
+stats_radial = read_tsv("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_full.bgen.stats")
 
-# get the list of snps in ld > 0.8
-background_snps = stats %>% dplyr::filter(CHR==lead_snps$CHR[lead_ix], BP > lead_snps$BP[lead_ix]-win, BP < lead_snps$BP[lead_ix]+win) %>% dplyr::select(SNP)
+res_all = vector("list", length(lead_snps$GWAS))
+names(res_all) = lead_snps$SNP
 
-search_proxies(lead_snps$SNP[1])
+for(lead_ix in 10:length(lead_snps$GWAS)) {
+  
+  print(paste("Variant:", lead_ix))
+  # lead_ix = 1
+  
+  # get the list of snps in ld > 0.8
+  
+  if(lead_snps$GWAS[lead_ix]=="lav_full") {
+    background_snps = stats_lav %>% dplyr::filter(CHR==lead_snps$CHR[lead_ix], BP > lead_snps$BP[lead_ix]-win, BP < lead_snps$BP[lead_ix]+win) %>% dplyr::select(SNP)
+  }
+  if(lead_snps$GWAS[lead_ix]=="long_full") {
+    background_snps = stats_long %>% dplyr::filter(CHR==lead_snps$CHR[lead_ix], BP > lead_snps$BP[lead_ix]-win, BP < lead_snps$BP[lead_ix]+win) %>% dplyr::select(SNP)
+  }
+  if(lead_snps$GWAS[lead_ix]=="radial_full") {
+    background_snps = stats_radial %>% dplyr::filter(CHR==lead_snps$CHR[lead_ix], BP > lead_snps$BP[lead_ix]-win, BP < lead_snps$BP[lead_ix]+win) %>% dplyr::select(SNP)
+  }
+  
+  res_all[[lead_ix]] = search_proxies(snp=lead_snps$SNP[lead_ix], background_snps=background_snps$SNP, ld_thres=0.8)
+  print(res_all[[lead_ix]])
+  
+}
+
+to_send = bind_rows(input_dat[c(2,5,8)], .id = "GWAS_NAME")
 
 
 # SIGNIFICANT HITS --------------------------------------------------------
@@ -418,7 +441,7 @@ to_pull = data.frame(
   tissue = c("Blood", "Blood", "Nerve - Tibial", NA),
   source = c("eqtlgen", "eqtlgen", "api", "none"),
   gene = mapping$external_gene_name[match(v2g$gene_id, mapping$ensembl_gene_id)]
-
+  
 )
 
 for(i in 1:dim(to_pull)[1]) {
@@ -922,7 +945,7 @@ to_pull = data.frame(
 for(i in 1:dim(to_pull)[1]) {
   
   if(to_pull$source[i]=="api") {
-
+    
     if(to_pull$study[i]=="GTEx_V8") {
       eqtl_df = dplyr::filter(imported_tabix_paths, study==to_pull$study[i], tissue_label==to_pull$tissue[i])
     } else {
@@ -932,7 +955,7 @@ for(i in 1:dim(to_pull)[1]) {
     summary_stats = import_eqtl_catalog(eqtl_df$ftp_path[1], region_granges, selected_gene_id=to_pull$ensembl_id[i], column_names)
     print(ggplot(summary_stats, aes(x=position, y=-log(pvalue,10))) + geom_point() + geom_vline(xintercept=hits$pos_38[variant_ix]) + theme_thesis(15) + ggtitle(paste(unlist(to_pull[i,]), collapse=", ")))
     write_tsv(summary_stats, paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull$ensembl_id[i], "_", to_pull$study[i], "_", to_pull$tissue[i], ".txt"))
-
+    
   }
   
   if(to_pull$source[i]=="eqtlgen") {
