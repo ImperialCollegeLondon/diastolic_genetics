@@ -5,7 +5,8 @@ to_pull = list(
     ensembl_id = c("ENSG00000115380"),
     gene = "EFEMP1",
     study = c("GTEx_V8"),
-    tissue = c("Thyroid")
+    tissue = c("Thyroid"),
+    source = c("api")
   ),
   rs1173727 = data.frame(
     ensembl_id = c("ENSG00000113389"),

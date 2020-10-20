@@ -1,6 +1,6 @@
 traits_of_interest = list(
   
-  rs59985551 = c(), 
+  rs59985551 = c("sbp_adj"), 
   rs1173727 = c("sbp_adj","dbp_adj"),
   rs35489511 = c("sbp_adj"),
   rs2275950 = c(),
