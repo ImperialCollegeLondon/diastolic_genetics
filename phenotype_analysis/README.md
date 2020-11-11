@@ -1,6 +1,6 @@
 # Cardiac Phenotype associations Pipeline
 
-## Multivariable analysis using LASSO models with stability selection for selecting the phenotypes
+## Multivariable analysis using LASSO models with stability selection for selecting the imaging phenotypes
 ### Stability selection procedure using 'stabsel'
 
     # load non-imaging phenotype data
@@ -24,7 +24,9 @@
  ### LASSO models using 'glmnet'. The parameter of lambda.min was tuned by a 10-fold cross-validation method using 'cv.glmnet' on a training set (~67% of the original dataset).
 
    
-    ## position_stab: position of phenotypes for analysis
+    ## load data for training and for analysis
+    ## covar: position of the covariates to bind with position of phenotypes for analysis
+    position_stab<-rbind(covar,pos_pheno)
     
     ## Final check for collinearity using the selected variables
 
@@ -36,43 +38,45 @@
     imcdiag(mod = model, method = "VIF", vif = 5)
 
 
-    VIF Multicollinearity Diagnostics
-
-                                      VIF detection
-    Age                            2.4588         0
-    Sex                            2.5576         0
-    BSA                            3.8769         0
-    SBP                            2.4555         0
-    DBP                            2.1936         0
-    `Pulse rate`                   1.8521         0
-    Diabetes                       1.4502         0
-    Smoking                        1.0303         0
-    `Duration of activity`         1.0144         0
-    `Medication (n)`               1.1927         0
-    `Assessment centre`            1.0708         0
-    HbA1c                          1.4123         0
-    `C-reactive protein            1.2030         0
-    HDL                            1.6472         0
-    Glucose                        1.3148         0
-    Triglycerides                  1.4476         0
-    `eGFR cystatin`                1.4778         0
-     PDSRrr                        2.1762         0
-    `Err Global`                   2.6223         0
-    `Ell Global`                   1.5321         0
-    `AAo distensibility`           2.9105         0
-    `DAo distensibility`           2.8771         0
-    LVSVi                          3.2973         0
-    LAVmaxi                        3.8564         0
-    LAVmini                        3.8502         0
-    LVEF                           2.8855         0
-    LVCO                           3.7458         0
-    LVCI                           3.9446         0
-    RVSVi                          2.8715         0
+    Call:
+    imcdiag(mod = model1, method = "VIF", vif = 5)
 
 
-    0 --> COLLINEARITY is not detected by the test
+     VIF Multicollinearity Diagnostics
+
+                                 VIF detection
+     Age                      1.9780         0
+     Sex                      1.6394         0
+     SBP                      1.3519         0
+     `Pulse rate`             1.6454         0
+     Diabetes                 1.1216         0
+     Smoking                  1.0122         0
+     `Duration of activity`   1.0114         0
+     `Medication (n)`         1.1984         0
+     `Assessment centre`      1.0688         0
+     `C-reactive protein`     1.1589         0
+     Cholesterol              1.2081         0
+     Triglycerides            1.4019         0
+     `eGFR cystatin`          1.4250         0
+     PDSRrr                   2.1422         0
+     `Err Global`             2.0268         0
+     `Ell Global`             1.4646         0
+     `AAo distensibility`     2.8909         0
+     `DAo distensibility`     2.8495         0
+     LVSVi                    4.5815         0
+     LVCI                     2.9617         0
+     LAVmaxi                  4.4977         0
+     LAVmini                  4.0171         0
+     RVSVi                    2.7339         0
+     RAVmini                  1.5510         0
+
+     NOTE:  VIF Method Failed to detect multicollinearity
+
+
+     0 --> COLLINEARITY is not detected by the test
 
     ===================================
+
 
     ## Apply LASSO regression
 
@@ -111,8 +115,8 @@
 
     colnames(beta_gl)<-colnames(data_selected)
     beta_gl<-as.data.frame(beta_gl)
-    multivar_lasso<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
-    multivar_lasso<-as.data.frame(multivar_lasso)
+    multivar_beta<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
+    multivar_beta<-as.data.frame(multivar_beta)
 
 
 ## Circos plot  
