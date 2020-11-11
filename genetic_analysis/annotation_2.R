@@ -22,13 +22,13 @@ scale_this <- function(x) {
 tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 imported_tabix_paths = read.delim("https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv", sep="\t", header=TRUE, stringsAsFactors=FALSE) %>% dplyr::as_tibble()
 
-eqtlgen = read_tsv("2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt")
+eqtlgen = read_tsv("../data/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt")
 
 
 # VARIANT DATA ------------------------------------------------------------
 
 load("r_data/hits.RData")
-variant_ix = 1
+variant_ix = 4
 list.files(paste0("data/", hits$variant[variant_ix]))
 snp_pos = hits$pos_38[variant_ix]
 win = 2e6
@@ -120,14 +120,16 @@ for(i in 1:length(qtl_dat)) {
   if(to_pull[[variant_ix]]$source[i]=="none") next
   dat = read_tsv(paste0("data/", hits$variant[variant_ix] ,"/eqtl_", to_pull[[variant_ix]]$ensembl_id[i], "_", to_pull[[variant_ix]]$study[i], "_", to_pull[[variant_ix]]$tissue[i], ".txt"))
   if(to_pull[[variant_ix]]$source[i]=="api") {
-    dat = dat %>% rename(pvalue="Pvalue", position="start")
+    dat = dat %>% rename(pvalue="Pvalue", position="start", beta="BETA", se="SE")
+    dat = dat %>% dplyr::select(Pvalue, start, BETA, SE) %>% mutate(p_value = -log(Pvalue,10) / max(-log(Pvalue,10)))
+  } else {
+    dat = dat %>% dplyr::select(Pvalue, start) %>% mutate(p_value = -log(Pvalue,10) / max(-log(Pvalue,10)))
   }
-  dat = dat %>% dplyr::select(Pvalue, start) %>% mutate(p_value = -log(Pvalue,10) / max(-log(Pvalue,10)))
   qtl_dat[[i]] = dat
 }
 
 coloc_plot = bind_rows(
-  gwas %>% dplyr::select(P_BOLT_LMM, start) %>% mutate(p_value = -log(P_BOLT_LMM,10), Group="GWAS"),
+  gwas %>% dplyr::select(P_BOLT_LMM, start, BETA, SE) %>% mutate(p_value = -log(P_BOLT_LMM,10), Group="GWAS"),
   bind_rows(qtl_dat, .id="Group")
 )
 
@@ -138,6 +140,30 @@ load(file=paste0("data/", hits$variant[variant_ix], "/coloc_plot.RData"))
 p1 = ggplot(coloc_plot, aes(x=start, y=p_value, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
 p2 = ggplot(coloc_plot, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2) + theme(legend.position="None")
 p2_legend = ggplot(coloc_plot, aes(x=start, y=p_value_scaled, color=Group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P) Scaled") + xlab("") + geom_vline(xintercept=hits$pos_38[variant_ix], alpha=0.5, color="grey", lty=2)
+
+coloc_names = unique(coloc_plot$Group)
+coloc_names = coloc_names[-which(coloc_names=="GWAS")]
+for(i in 1:length(coloc_names)) {
+  coloc_data = coloc_plot %>% filter(Group==coloc_names[i])
+  common_variants = intersect(gwas$start, coloc_data$start)
+  if(all(is.na(coloc_data$BETA))) next
+  data_set_1 = list(
+    beta = as.numeric(gwas$BETA[match(common_variants, gwas$start)]),
+    varbeta = as.numeric(gwas$SE[match(common_variants, gwas$start)]),
+    type = "quant",
+    N = 2e4,
+    MAF = rep(0.01, length(common_variants))
+  )
+  data_set_2 = list(
+    beta = as.numeric(coloc_data$BETA[match(common_variants, coloc_data$start)]),
+    varbeta = as.numeric(coloc_data$SE[match(common_variants, coloc_data$start)]),
+    type = "quant",
+    N = 2e4,
+    MAF = rep(0.001, length(common_variants))
+  )
+  # coloc_wrapper(coloc_input)
+  coloc.abf(dataset1=data_set_1, dataset2=data_set_2)
+}
 
 
 # TRAITS OF INTEREST ------------------------------------------------------

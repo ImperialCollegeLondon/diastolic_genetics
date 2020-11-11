@@ -25,8 +25,8 @@ to_pull = list(
   rs2275950 = data.frame(
     ensembl_id = c("ENSG00000158006","ENSG00000169442","ENSG00000130695","ENSG00000117632","ENSG00000175087" ,"ENSG00000142675","ENSG00000158014","ENSG00000117676","ENSG00000158022","ENSG00000142669","ENSG00000158008"),
     gene = c("PAFAH2","CD52","CEP85","STMN1","PDIK1L","CNKSR1","SLC30A2","RPS6KA1","TRIM63","SH3BGRL3","EXTL1"),
-    study = c("eQTLGen","eQTLGen","eQTLGen","eQTLGen","Fairfax_2014","eQTLGen","GTEx_V8","eQTLGen","BLUEPRINT","eQTLGen","GENCORD"),
-    tissue = c("Blood","Blood","Blood","Blood","monocyte","Blood","Skin - Sun Exposed (Lower leg)","Blood","monocyte","Blood","fibroblast"),
+    study = c("eQTLGen","eQTLGen","eQTLGen","eQTLGen","Fairfax_2014","eQTLGen","GTEx_V8","eQTLGen","HipSci","eQTLGen","GENCORD"),
+    tissue = c("Blood","Blood","Blood","Blood","monocyte","Blood","Skin - Sun Exposed (Lower leg)","Blood","iPSC","Blood","fibroblast"),
     source = c("eqtlgen", "eqtlgen", "eqtlgen", "eqtlgen", "api", "eqtlgen","api","eqtlgen","api","eqtlgen","api")
   ),
   rs11970286 = data.frame(
