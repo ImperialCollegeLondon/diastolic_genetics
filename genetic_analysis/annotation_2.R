@@ -48,6 +48,8 @@ if(!dir.exists(paste0("data/", hits$variant[variant_ix]))) {
 
 region_granges_37 = lift_over(region_granges, "38_to_37")
 region_granges_37 = reduce(makeGRangesFromDataFrame(region_granges_37), min.gapwidth=1e2)
+end(region_granges_37) = end(region_granges_37) + 2e6
+start(region_granges_37) = start(region_granges_37) - 1e6
 
 
 # eQTL GET ----------------------------------------------------------------
