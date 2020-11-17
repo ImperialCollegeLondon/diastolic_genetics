@@ -28,7 +28,7 @@ eqtlgen = read_tsv("../data/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRem
 # VARIANT DATA ------------------------------------------------------------
 
 load("r_data/hits.RData")
-variant_ix = 4
+variant_ix = 6
 list.files(paste0("data/", hits$variant[variant_ix]))
 snp_pos = hits$pos_38[variant_ix]
 win = 2e6
@@ -45,6 +45,9 @@ region_granges
 if(!dir.exists(paste0("data/", hits$variant[variant_ix]))) {
   dir.create(paste0("data/", hits$variant[variant_ix]))
 }
+
+region_granges_37 = lift_over(region_granges, "38_to_37")
+region_granges_37 = reduce(makeGRangesFromDataFrame(region_granges_37), min.gapwidth=1e2)
 
 
 # eQTL GET ----------------------------------------------------------------
@@ -174,6 +177,10 @@ gwas_dat = vector("list", length(traits))
 names(gwas_dat) = traits
 
 for(i in 1:length(gwas_dat)) {
+  
+  # for mitral val
+  # gwas_comp = get_gwas_summary_stats(region_granges_37, traits=data.frame(name="Mitral_valve_disorder", type="logistic"))
+  # gwas_comp = gwas_comp %>% dplyr::select(p, pos) %>% dplyr::rename(start="pos") %>% mutate(p_value_scaled = -log(p,10) / max(-log(p,10), na.rm=TRUE), p_value = -log(p,10))
   
   gwas_comp = loadGWAS(trait=traits[i], type="linear")
   gwas_comp = as.data.frame(gwas_comp) %>% dplyr::filter(CHR==hits$chr[variant_ix], (BP > hits$pos_37[variant_ix]-win & BP < hits$pos_37[variant_ix]+win)) %>% arrange(BP)

@@ -16,6 +16,20 @@ load_all("~/links/bullseye/")
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
 
+# QQ PLOTS ----------------------------------------------------------------
+
+
+
+# PULSE RATE CONDITIONAL ANALYSIS -----------------------------------------
+
+covar = read_delim("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Data/Derived/GWAS_covariates/UKB_covariates.plink", delim=" ")
+quant_traits = readProcessedQuantTraits(instance=0:2, type="all")
+quant_traits = quant_traits %>% dplyr::select(SID, pulse_rate_adj)
+table(covar$FID %in% quant_traits$SID)
+covar$pulse_rate_adj = quant_traits$pulse_rate_adj[match(covar$FID, quant_traits$SID)]
+write_delim(covar, file="/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Data/Derived/GWAS_covariates/UKB_covariates_with_apr.plink", delim=" ")
+
+
 # UK DIGITAL HEART REPLICATION --------------------------------------------
 
 # get the 13 lead snps
