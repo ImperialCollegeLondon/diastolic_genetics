@@ -18,6 +18,33 @@ Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
 # QQ PLOTS ----------------------------------------------------------------
 
+radial = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_full.bgen.stats", header=TRUE)
+pdf(file="qq_radial.pdf", width=7, height=6)
+qq(radial$P_BOLT_LMM)
+dev.off()
+rm(radial)
+
+long = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_long_PDSR_full.bgen.stats", header=TRUE)
+pdf(file="qq_long.pdf", width=7, height=6)
+qq(long$P_BOLT_LMM)
+dev.off()
+rm(long)
+
+lav = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats", header=TRUE)
+pdf(file="qq_lav.pdf", width=7, height=6)
+qq(lav$P_BOLT_LMM)
+dev.off()
+rm(lav)
+
+# heritability
+
+h2 = data.frame(
+  gwas = c("Radial PDSR","Longitdinal PDSR","LAV"),
+  estimate = c(0.1416,0.1238,0.2138),
+  se = c(0.0148,0.0148,0.0173)
+)
+
+ggplot(h2, aes(y=factor(gwas), x=estimate)) + geom_point(size=1) + geom_errorbarh(aes(xmax=estimate+se, xmin=estimate-se), size=0.5, height=0.1, color="gray50") + theme_thesis(15) + xlab("H2") + ylab("") + coord_flip() + scale_x_continuous(limits=c(0,0.5))
 
 
 # PULSE RATE CONDITIONAL ANALYSIS -----------------------------------------
@@ -28,6 +55,39 @@ quant_traits = quant_traits %>% dplyr::select(SID, pulse_rate_adj)
 table(covar$FID %in% quant_traits$SID)
 covar$pulse_rate_adj = quant_traits$pulse_rate_adj[match(covar$FID, quant_traits$SID)]
 write_delim(covar, file="/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Data/Derived/GWAS_covariates/UKB_covariates_with_apr.plink", delim=" ")
+
+input_dat = list(
+  lav_full = read_tsv("data/res_bolt_lav_full_apr_covar.txt", col_names=FALSE),
+  long_full = read_tsv("data/res_bolt_long_pdsr_full_apr_covar.txt", col_names=FALSE),
+  radial_full = read_tsv("data/res_bolt_radial_pdsr_full_apr_covar.txt", col_names=FALSE)
+)
+for(i in 1:length(input_dat)) names(input_dat[[i]]) = header
+lapply(input_dat, function(x) dim(x)[1])
+
+lead_snps = lapply(input_dat, function(x) x %>% group_by(CHR) %>% dplyr::slice(which.min(P_BOLT_LMM)))
+lead_snps = bind_rows(lead_snps, .id="GWAS")
+
+radial = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_full_apr_covar.bgen.stats", header=TRUE)
+radial_tab <- radial %>% dplyr::rename(P=P_BOLT_LMM)
+pdf(file="manhattan_radial_apr_covar.pdf", width=15, height=4)
+manhattan_plot(radial_tab, header="Radial Strain Rate (Conditioned on Pulse Rate)")
+dev.off()
+rm(radial); rm(radial_tab)
+
+long = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_long_PDSR_full_apr_covar.bgen.stats", header=TRUE)
+long_tab <- long %>% dplyr::rename(P=P_BOLT_LMM)
+pdf(file="manhattan_long_apr_covar.pdf", width=15, height=4)
+manhattan_plot(long_tab, header="Longitudinal Strain Rate (Conditioned on Pulse Rate)")
+dev.off()
+rm(long); rm(long_tab)
+
+lav = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full_apr_covar.bgen.stats", header=TRUE)
+lav_tab <- lav %>% dplyr::rename(P=P_BOLT_LMM)
+pdf(file="manhattan_lav_apr_covar.pdf", width=15, height=4)
+manhattan_plot(lav_tab, header="LAV (Conditioned on Pulse Rate)")
+dev.off()
+rm(lav); rm(lav_tab)
+
 
 
 # UK DIGITAL HEART REPLICATION --------------------------------------------
@@ -71,7 +131,7 @@ for(lead_ix in 10:length(lead_snps$GWAS)) {
   
 }
 
-to_send = bind_rows(input_dat[c(2,5,8)], .id = "GWAS_NAME")
+to_send = bind_rows(input_dat[c(2,5,8)], .id="GWAS_NAME")
 
 
 # SIGNIFICANT HITS --------------------------------------------------------
@@ -89,19 +149,88 @@ measures = c("lav", "long", "radial")
 input_dat = list(
   lav = read_tsv("data/res_bolt_lav_disc.txt", col_names=FALSE),
   lav_full = read_tsv("data/res_bolt_lav_full.txt", col_names=FALSE),
-  lav_repl_match = read_tsv("data/res_bolt_lav_repl_match.txt", col_names=FALSE),
+  lav_repl = read_tsv("data/res_bolt_lav_repl_lower_sig.txt", col_names=FALSE),
   long = read_tsv("data/res_bolt_long_pdsr_disc.txt", col_names=FALSE),
   long_full = read_tsv("data/res_bolt_long_pdsr_full.txt", col_names=FALSE),
-  long_repl_match = read_tsv("data/res_bolt_long_pdsr_repl_match.txt", col_names=FALSE),
+  long_repl = read_tsv("data/res_bolt_long_pdsr_repl_lower_sig.txt", col_names=FALSE),
   radial = read_tsv("data/res_bolt_radial_pdsr_disc.txt", col_names=FALSE),
   radial_full = read_tsv("data/res_bolt_radial_pdsr_full.txt", col_names=FALSE),
-  radial_repl_match = read_tsv("data/res_bolt_radial_pdsr_repl_match.txt", col_names=FALSE)
+  radial_repl = read_tsv("data/res_bolt_radial_pdsr_repl_lower_sig.txt", col_names=FALSE)
 )
 
 for(i in 1:length(input_dat)) names(input_dat[[i]]) = header
 lapply(input_dat, function(x) dim(x)[1])
 
 lapply(input_dat[c(2,5,8)], function(x) x %>% group_by(CHR) %>% summarise(N=n(), lower=min(BP), upper=max(BP)))
+
+bind_rows(input_dat[c(1,4,7)], .id="GWAS_NAME") %>% View(title="disc") # disc
+bind_rows(input_dat[c(2,5,8)], .id="GWAS_NAME") %>% View(title="full") # full
+bind_rows(input_dat[c(3,6,9)], .id="GWAS_NAME") %>% View(title="repl") # repl
+
+# there are 3 hits across the 3 gwas that come up in the disc but not the full
+# check them here ...
+# added to genetic_analysis/locuszoom/ - look like fps
+hits_tc = c(
+  "rs13184632",
+  "1:178221156_CA_C",
+  "rs149751856"
+)
+hits_tc_meta = getMetadataForImputedSnpsV2(by="snp", hits_tc)
+hits_tc_meta$gwas = c("long_PDSR","LAV","radial_PDSR")
+win = 1e5
+
+for(i in 2:length(hits_tc_meta$RSID)) {
+  
+  stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits_tc_meta$gwas[i], "_disc.bgen.stats"))
+  stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF, BETA, SE)
+  stats$N = 2e4
+  stats = dplyr::rename(stats, P=P_BOLT_LMM_INF, ESTIMATE=BETA)
+  locus_zoom_region(gwas_res=stats, CHR=hits_tc_meta$Chromosome[i], start=hits_tc_meta$Pos[i]-win, stop=hits_tc_meta$Pos[i]+win, clean=TRUE)
+  
+}
+
+# plot the replication
+
+gwas_tots = data.frame()
+
+for(variant_ix in 1:length(hits$variant)) {
+  
+  print(hits$variant[variant_ix])
+  
+  snp_pos = hits$pos_38[variant_ix]
+  win = 2e6
+  
+  v2g = get_V2G_data(hits$id[variant_ix])
+  v2g = v2g[!unlist(lapply(v2g$qtls, is_empty)),]
+  
+  region_granges = GenomicRanges::GRanges(
+    seqnames = hits$chr[variant_ix], 
+    ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
+    strand = "*")
+  region_granges
+  
+  region_granges_37 = lift_over(region_granges, "38_to_37")
+  region_granges_37 = reduce(makeGRangesFromDataFrame(region_granges_37), min.gapwidth=1e2)
+  region_granges_37  
+  
+  gwas_disc = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_disc.bgen.stats")), header=TRUE)
+  gwas_repl = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_repl.bgen.stats")), header=TRUE)
+  gwas_full = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
+  
+  gwas = rbind(
+    cbind(gwas_disc, group="disc"),
+    cbind(gwas_repl, group="repl"),
+    cbind(gwas_full, group="full")
+  )
+  gwas = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
+  gwas = lift_over(gwas, dir="37_to_38")
+  gwas_tots = rbind(gwas_tots, cbind(gwas, locus=paste(hits$variant[variant_ix], hits$gwas_root[variant_ix], sep="_")))
+  
+}
+
+gwas_tots %>% filter(grepl("radial",locus)) %>% ggplot(aes(x=start, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + facet_wrap(~locus, scales="free")
+
+gwas_tots %>% filter(grepl("radial",locus), group=="repl") %>% ggplot(aes(x=start, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(6.25e-3, base=10), alpha=0.5, lty=2, color="grey") + facet_wrap(~locus, scales="free")
 
 
 # DISCOVERY VERSUS REPLICATION --------------------------------------------
