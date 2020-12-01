@@ -16,6 +16,18 @@ load_all("~/links/bullseye/")
 Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
 
+# MANHATTAN PLOTS ANNOTATED -----------------------------------------------
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "radial_PDSR", "_disc.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(hits[hits$gwas_root=="radial_PDSR", 'variant'], stats$SNP)] = "Radial PDSR"
+stats$gene[match(hits[hits$gwas_root=="radial_PDSR", 'variant'], stats$SNP)] = c("","GJA1","BAG3","","FHOD3")
+manh_plot(dplyr::filter(stats, chr==10, pos > hits$pos_37[12]-1e4, pos < hits$pos_37[12]+1e4))
+
+
 # QQ PLOTS ----------------------------------------------------------------
 
 radial = read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_full.bgen.stats", header=TRUE)
