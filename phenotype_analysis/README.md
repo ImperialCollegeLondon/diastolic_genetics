@@ -1,28 +1,11 @@
 # Cardiac Phenotype associations Pipeline
 
-## Multivariable analysis using LASSO models with stability selection for selecting the imaging phenotypes
-### Stability selection procedure using 'stabsel'
+## Multivariable analysis using LASSO models with model selection for selecting the imaging phenotypes
+### Model selection procedure
 
-    # load non-imaging phenotype data
-    pheno<-as.matrix(data_pheno)
-    library(stabs)
-    # for PDSRll (s-1)
-    library(stabs)
+#### We employed the model selection approach, setting as predictors the three diastolic function parameters, peak diastolic longitudinal strain rates (PDSR$_{ll}$), peak diastolic radial strain rates (PDSR$_{rr}$) and left atrial maximum volume indexed to BSA (LAVmax$_{i}$), and selecting the variables determined by the Extended Bayesian Information Criterion (EBIC) and stability selection on the least absolute shrinkage and selection operator (LASSO) model, to identify phenotype associated with the trait of interest.
 
-    stab.glmnet <- stabsel(x=pheno[,-1], y=pheno[,1] ,
-                          fitfun = glmnet.lasso,
-                          args.fitfun = list(alpha=1),
-                          cutoff = 0.75, PFER =1, B=100)
-
-    pheno_long<-as.data.frame(stab.glmnet$selected) # repeat for PDSRrr
-    pheno_radial<-as.data.frame(stab.glmnet$selected) # repeat for LAVmaxi
-    pheno_lav<-as.data.frame(stab.glmnet$selected) # bind all the variables selected from the stabsel
-    pheno_all<-rbind(pheno_long,pheno_radial,pheno_lav)
-
-    pos_pheno<-match(rownames(pheno_all),colnames(pheno)) # order the position of variables selected
-
- ### LASSO models using 'glmnet'. The parameter of lambda.min was tuned by a 10-fold cross-validation method using 'cv.glmnet' on a training set (~67% of the original dataset).
-
+ ### LASSO models using 'glmnet'. The parameter of lambda.min was tuned by a 10-fold cross-validation method using 'cv.glmnet' on a training set.
    
     ## load data for training and for analysis
     ## covar: position of the covariates to bind with position of phenotypes for analysis
@@ -34,55 +17,17 @@
     library(mctest)
     imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
     
-    Call:
-    imcdiag(mod = model, method = "VIF", vif = 5)
-
-
-    Call:
-    imcdiag(mod = model1, method = "VIF", vif = 5)
-
-
-     VIF Multicollinearity Diagnostics
-
-                                 VIF detection
-     Age                      1.9780         0
-     Sex                      1.6394         0
-     SBP                      1.3519         0
-     `Pulse rate`             1.6454         0
-     Diabetes                 1.1216         0
-     Smoking                  1.0122         0
-     `Duration of activity`   1.0114         0
-     `Medication (n)`         1.1984         0
-     `Assessment centre`      1.0688         0
-     `C-reactive protein`     1.1589         0
-     Cholesterol              1.2081         0
-     Triglycerides            1.4019         0
-     `eGFR cystatin`          1.4250         0
-     PDSRrr                   2.1422         0
-     `Err Global`             2.0268         0
-     `Ell Global`             1.4646         0
-     `AAo distensibility`     2.8909         0
-     `DAo distensibility`     2.8495         0
-     LVSVi                    4.5815         0
-     LVCI                     2.9617         0
-     LAVmaxi                  4.4977         0
-     LAVmini                  4.0171         0
-     RVSVi                    2.7339         0
-     RAVmini                  1.5510         0
-
-     NOTE:  VIF Method Failed to detect multicollinearity
-
-
-     0 --> COLLINEARITY is not detected by the test
-
-    ===================================
+   ####  Inspect the variance inflation factor and exclude variables with VIF > 5 and include one phenotypes for each of the four cardiac chambers (LV, LA, RV, RA), one of the relevant strains (Err, Ell) and two aortic sections (AAo, DAo) where possible to avoid collinearity.
+   <img src="vif_plot.JPG" alt="" class="inline" />
 
 
     ## Apply LASSO regression
 
     library(glmnet)  
     
-    data.train<-as.matrix(multivar_data_train[,position_stab[,1]])
+    # position_final - define the final position of the variables selected in the data. 
+    # cv.glmnet to train for the lambda parameter 
+    data.train<-as.matrix(multivar_data_train[,position_final])
 
     lambda_min<-matrix(0,ncol = 1, nrow = ncol(data.train))
     for (iT in 1:ncol(data.train)){
@@ -96,7 +41,7 @@
     
     # LASSO model using glmnet 
     
-    data_selected<-as.matrix(multivar_data_test[,position_stab[,1]])
+    data_selected<-as.matrix(multivar_data_test[,position_final])
     data_selected<-na.omit(data_selected)
     beta_gl<-matrix(0,ncol = ncol(data_selected), nrow = ncol(data_selected)-1)
     for (iS in 1:ncol(data_selected)){
