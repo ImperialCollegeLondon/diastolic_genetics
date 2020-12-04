@@ -5,14 +5,14 @@
 
 #### We employed the model selection approach, setting as predictors the three diastolic function parameters, peak diastolic longitudinal strain rates (PDSRll), peak diastolic radial strain rates (PDSRrr) and left atrial maximum volume indexed to BSA (LAVmaxi), and selecting the variables determined by the Extended Bayesian Information Criterion (EBIC) and stability selection on the least absolute shrinkage and selection operator (LASSO) model, to identify phenotype associated with the trait of interest.
 
- ### LASSO models using 'glmnet'. The parameter of lambda.min was tuned by a 10-fold cross-validation method using 'cv.glmnet' on a training set.
-   
+ ### LASSO models using 'glmnet'
+ 
 ####  Inspect the variance inflation factor and exclude variables with VIF > 5 and include one phenotypes for each of the four cardiac chambers (LV, LA, RV, RA), one of the relevant strains (Err, Ell) and two aortic sections (AAo, DAo) where possible to avoid collinearity.
    <img src="vif_plot.JPG" alt="" class="inline" />
 
 
-   #### Apply LASSO regression
-
+   #### Apply LASSO regression adjusting a 10-fold cross-validation method on a training set using 'cv.glmnet' function tuning the lambda.min parameter, which denotes the value that gives minimum mean cross-validated error, and use it for prediction on the test set.
+   
     library(glmnet)  
     
     # position_final - define the final position of the variables selected in the data. 
