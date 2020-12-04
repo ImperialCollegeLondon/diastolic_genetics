@@ -20,7 +20,7 @@ library(glmnet)
 library(berryFunctions)
 
 # load data for multiple linear regression analysis
-multidata <- read.table("20200709_strain_plots_all/data_paper/multiple_datatable.txt", header = TRUE)
+multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
 beta_ml<-matrix(0,ncol=31, nrow=10)
 mat_pv<-matrix(0,ncol=31, nrow=10)
@@ -58,14 +58,8 @@ rownames(mat_pv)<-colnames(multidata)[1:10]
 # Method 1 - Best subset selection approach with "beSS"
 # using GPDAS algorithm to select the optimal subset selection k and the best model is determined by Extended Bayesian Information Criterion (EBIC)
 
-data_pheno <- read.table("20200709_strain_plots_all/data_paper/Phenotypes_40k.txt", header = TRUE)# load only imaging phenotype data
-dataf<-(data_pheno[,c(3:114,131,148,155,172:197)])
-
-forscale<-c(1,4:13,85:141)
-for (iS in 1:68){
-  dataf[,forscale[iS]]<-scale(dataf[,forscale[iS]])
-}
-pheno<-as.matrix(na.omit(dataf))
+data_pheno <- read.table("Phenotypes_40k.txt", header = TRUE)# load only imaging phenotype data
+pheno<-as.matrix(na.omit(data_pheno))
 
 # PDSRll
 fit.seqll <- bess(pheno[,-111], pheno[,111], method="sequential", epsilon = 0)
@@ -178,9 +172,9 @@ pos_pheno<-pos_pheno[order(pos_pheno)]
 # [29] "LVEF"                   "LVCI"                   "LAEF"                   "RVEDVi"                
 # [33] "RVSVi"                  "RAVmini"                "RVEF"                   "RAEF"                  
 
-multivar_data <- read.table("20200709_strain_plots_all/data_paper/multivar_datatable.txt", header = TRUE) # load the whole dataset
-multivar_data_train <- read.table("20200709_strain_plots_all/data_paper/multivar_train_datatable.txt", header = TRUE) # load the training dataset
-multivar_data_test <- read.table("20200709_strain_plots_all/data_paper/multivar_test_datatable.txt", header = TRUE) # load the test dataset
+multivar_data <- read.table("multivar_datatable.txt", header = TRUE) # load the whole dataset
+multivar_data_train <- read.table("multivar_train_datatable.txt", header = TRUE) # load the training dataset
+multivar_data_test <- read.table("multivar_test_datatable.txt", header = TRUE) # load the test dataset
 
 ## Final check for collinearity of the selected variables using Variance Inflation Factor (VIF)
 multivar_data<-na.omit(multivar_data[,pos_pheno])
