@@ -7,17 +7,7 @@
 
  ### LASSO models using 'glmnet'. The parameter of lambda.min was tuned by a 10-fold cross-validation method using 'cv.glmnet' on a training set.
    
-    ## load data for training and for analysis
-    ## covar: position of the covariates to bind with position of phenotypes for analysis
-    position_stab<-rbind(covar,pos_pheno)
-    
-    ## Final check for collinearity using the selected variables
-
-    model<-lm(PDSRll~., data=as.data.frame(multivar_data[,position_stab[,1]]))
-    library(mctest)
-    imcdiag(model,method="VIF", vif=5) # 0 if collinearity is not detected by this test
-    
-   ####  Inspect the variance inflation factor and exclude variables with VIF > 5 and include one phenotypes for each of the four cardiac chambers (LV, LA, RV, RA), one of the relevant strains (Err, Ell) and two aortic sections (AAo, DAo) where possible to avoid collinearity.
+####  Inspect the variance inflation factor and exclude variables with VIF > 5 and include one phenotypes for each of the four cardiac chambers (LV, LA, RV, RA), one of the relevant strains (Err, Ell) and two aortic sections (AAo, DAo) where possible to avoid collinearity.
    <img src="vif_plot.JPG" alt="" class="inline" />
 
 
