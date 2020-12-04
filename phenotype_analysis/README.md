@@ -1,6 +1,6 @@
 # Cardiac Phenotype associations Pipeline
 
-## Multivariable analysis using LASSO models with model selection for selecting the imaging phenotypes
+## Multivariable analysis using LASSO models
 ### Model selection procedure
 
 #### We employed the model selection approach, setting as predictors the three diastolic function parameters, peak diastolic longitudinal strain rates (PDSRll), peak diastolic radial strain rates (PDSRrr) and left atrial maximum volume indexed to BSA (LAVmaxi), and selecting the variables determined by the Extended Bayesian Information Criterion (EBIC) and stability selection on the least absolute shrinkage and selection operator (LASSO) model, to identify phenotype associated with the trait of interest.
@@ -52,6 +52,6 @@
     multivar_lasso<-as.data.frame(beta_gl)
 
 
-## Circos plot  
+### Circos plot  
 
 <img src="circos_plot.JPG" alt="" class="inline" />
