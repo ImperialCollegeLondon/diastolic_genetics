@@ -11,11 +11,12 @@
    <img src="vif_plot.JPG" alt="" class="inline" />
 
 
-    ## Apply LASSO regression
+   #### Apply LASSO regression
 
     library(glmnet)  
     
     # position_final - define the final position of the variables selected in the data. 
+    
     # cv.glmnet to train for the lambda parameter 
     data.train<-as.matrix(multivar_data_train[,position_final])
 
@@ -29,8 +30,7 @@
       lambda_min[iT]<-round(cv,5)
     }
     
-    # LASSO model using glmnet 
-    
+    # LASSO on the test set
     data_selected<-as.matrix(multivar_data_test[,position_final])
     data_selected<-na.omit(data_selected)
     beta_gl<-matrix(0,ncol = ncol(data_selected), nrow = ncol(data_selected)-1)
@@ -49,9 +49,7 @@
     }
 
     colnames(beta_gl)<-colnames(data_selected)
-    beta_gl<-as.data.frame(beta_gl)
-    multivar_beta<-matrix(0,nrow = ncol(beta_gl),ncol=ncol(beta_gl))
-    multivar_beta<-as.data.frame(multivar_beta)
+    multivar_lasso<-as.data.frame(beta_gl)
 
 
 ## Circos plot  
