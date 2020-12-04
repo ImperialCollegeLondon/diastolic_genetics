@@ -51,6 +51,8 @@ rownames(beta_ml)<-colnames(multidata)[1:10]
 # p-values
 colnames(mat_pv)<-colnames(multidata)[11:41]
 rownames(mat_pv)<-colnames(multidata)[1:10]
+
+
 ### Multivariate LASSO regresion analysis with model  selection for selecting the non-imaging phenotypes 
 
 # Method 1 - Best subset selection approach with "beSS"
