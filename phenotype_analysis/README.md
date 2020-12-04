@@ -11,7 +11,7 @@
    <img src="vif_plot.JPG" alt="" class="inline" />
 
 
-   #### Apply LASSO regression adjusting a 10-fold cross-validation method on a training set using 'cv.glmnet' function tuning the lambda.min parameter, which denotes the value that gives minimum mean cross-validated error, and use it for prediction on the test set.
+#### Apply LASSO regression adjusting a 10-fold cross-validation method on a training set using 'cv.glmnet' function tuning the lambda.min parameter, which denotes the value that gives minimum mean cross-validated error, and use it for prediction on the test set.
    
     library(glmnet)  
     
