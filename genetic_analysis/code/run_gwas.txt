@@ -1,0 +1,57 @@
+############### Code for running GWAS with BOLT-LMM ###################
+
+## Input files
+# bed, bim, bgen files, sampleFile directly taken from UKBB
+# fam: as provided by UKBB, add additional empty column to match BOLT-LMM input format
+# phenoFile: data frame with columns FID, IID, phenotype (only for subjects that passed the genetic QC and have not withdrawn consent)
+#            restrict to specific subset (e.g. European non-imaging population if needed)
+# phenoCol: name of endpoint for GWAS as stated in phenoFile (here: phenotype)
+# covarFile: data frame containing FID, IID and data for considered covariates (outlined in covarCol and qCovarCol)
+
+BOLT-LMM_v2.3.4/bolt \
+--bed=_001_ukb_cal_chr{1:22}_v2.bed \
+--bim=_001_ukb_cal_chr{1:22}_v2.bim \
+--fam=fam.fam \
+--bgenFile=_004_ukb_imp_chr{1:22}_v3.bgen \
+--bgenMinMAF=1e-3 \
+--bgenMinINFO=0.7 \
+--sampleFile=ukb40616_imp_chr17_v3_s487297.sample \
+--phenoFile=pheno.txt \
+--phenoCol=phenotype \
+--covarFile=UKB_covariates.plink \
+--covarCol=Array \
+--covarCol=Sex \
+--covarMaxLevels=30 \
+--qCovarCol=Age \
+--qCovarCol=PC{1:10} \
+--LDscoresFile=BOLT-LMM_v2.3.4/tables/LDSCORE.1000G_EUR.tab.gz \
+--geneticMapFile=BOLT-LMM_v2.3.4/tables/genetic_map_hg19_withX.txt.gz \
+--lmmForceNonInf \
+--numThreads=8 \
+--statsFile=result.stats.gz \
+--statsFileBgenSnps=result.bgen.stats.gz  \
+--verboseStats
+
+############### Code for running GWAS with PLINK ###################
+
+## example for GWAS on CHR 1
+# bgen, sample file directly from UK Biobank
+# pheno: data frame with columns FID, IID, phenotype (only for subjects that passed the genetic QC and have not withdrawn consent), 
+#        restrict to specific subset (e.g. European non-imaging population if needed)
+# pheno-name: name of phenotype as mentioned in pheno
+# covar: data frame containing FID, IID and data for considered covariates (outlined in covarCol and qCovarCol)
+# covar-name: list of included covariates
+
+Plink_2.00_20190716/plink2 \
+--bgen _004_ukb_imp_chr1_v3.bgen \
+--sample ukb40616_imp_chr17_v3_s487297.sample \
+--maf 0.001 \
+--geno 0.03 \
+--mind 0.05 \
+--glm hide-covar \
+--memory 16000 \
+--pheno pheno.txt \
+--pheno-name phenotype \
+--covar UKB_covariates.plink \
+--covar-name Sex,Age,Array,PC1-PC10 \
+--out GWAS_out_chr_1
