@@ -18,14 +18,77 @@ Sys.setenv(R_CONFIG_ACTIVE="imaging")
 
 # MANHATTAN PLOTS ANNOTATED -----------------------------------------------
 
+# radial
+
 stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "radial_PDSR", "_disc.bgen.stats"))
 stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
 stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
 stats$phenotype = NA
 stats$gene = NA
-stats$phenotype[match(hits[hits$gwas_root=="radial_PDSR", 'variant'], stats$SNP)] = "Radial PDSR"
-stats$gene[match(hits[hits$gwas_root=="radial_PDSR", 'variant'], stats$SNP)] = c("","GJA1","BAG3","","FHOD3")
-manh_plot(dplyr::filter(stats, chr==10, pos > hits$pos_37[12]-1e4, pos < hits$pos_37[12]+1e4))
+stats$phenotype[match(c("rs2234962","rs369533272","rs11535974"), stats$SNP)] = "Radial PDSR"
+stats$gene[match(c("rs2234962","rs369533272","rs11535974"), stats$SNP)] = c("BAG3","FHOD3","AC023158.1")
+png(filename="data/manhattan_disc_radial.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "radial_PDSR", "_full.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs2234962","rs369533272","rs9388001"), stats$SNP)] = "Radial PDSR"
+stats$gene[match(c("rs2234962","rs369533272","rs9388001"), stats$SNP)] = c("BAG3","FHOD3","GJA1")
+png(filename="data/manhattan_full_radial.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
+# lav
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "LAV", "_disc.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs1173727"), stats$SNP)] = "LAV"
+stats$gene[match(c("rs1173727"), stats$SNP)] = c("NPR3")
+png(filename="data/manhattan_disc_lav.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "LAV", "_full.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs1173727","rs59985551","rs35489511"), stats$SNP)] = "LAV"
+stats$gene[match(c("rs1173727","rs59985551","rs35489511"), stats$SNP)] = c("NPR3","EFEMP1","CDK6")
+png(filename="data/manhattan_full_lav.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
+# long
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "long_PDSR", "_disc.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs11970286"), stats$SNP)] = "Longitudinal PDSR"
+stats$gene[match(c("rs11970286"), stats$SNP)] = c("PLN")
+png(filename="data/manhattan_disc_long.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "long_PDSR", "_full.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs11970286","rs2275950","rs10261575","rs11535974","rs499715"), stats$SNP)] = "Longitudinal PDSR"
+stats$gene[match(c("rs11970286","rs2275950","rs10261575","rs11535974","rs499715"), stats$SNP)] = c("PLN","TRIM63","PHF14","AC023158.1","FHOD3")
+png(filename="data/manhattan_full_long.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
 
 
 # QQ PLOTS ----------------------------------------------------------------
@@ -99,7 +162,6 @@ pdf(file="manhattan_lav_apr_covar.pdf", width=15, height=4)
 manhattan_plot(lav_tab, header="LAV (Conditioned on Pulse Rate)")
 dev.off()
 rm(lav); rm(lav_tab)
-
 
 
 # UK DIGITAL HEART REPLICATION --------------------------------------------
