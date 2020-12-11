@@ -19,7 +19,7 @@ library(mctest)
 
 ### Multivariate LASSO regresion analysis with model  selection for selecting the non-imaging phenotypes 
 
-data_pheno <- read.table("phenotypes_all.txt", header = TRUE)# load all 110 non-imaging and 31 imaging phenotype data
+data_pheno <- read.table("Phenotypes_40k.txt", header = TRUE)# load all 110 non-imaging and 31 imaging phenotype data
 
 # Method 1 - Best subset selection approach with "beSS"
 # using GPDAS algorithm to select the optimal subset selection k and the best model is determined by Extended Bayesian Information Criterion (EBIC)
