@@ -24,7 +24,7 @@ data_pheno <- read.table("Phenotypes_40k.txt", header = TRUE)# load all 110 non-
 # Method 1 - Best subset selection approach with "beSS"
 # using GPDAS algorithm to select the optimal subset selection k and the best model is determined by Extended Bayesian Information Criterion (EBIC)
 
-pheno<-as.matrix(na.omit(data_pheno[,-c(1:2)])) # exclude the IDs
+pheno<-as.matrix(na.omit(data_pheno))
 
 # PDSRll
 fit.seqll <- bess(pheno[,-111], pheno[,111], method="sequential", epsilon = 0)
@@ -64,7 +64,7 @@ for (iP in 1:length(pheno_all_M1)){pos_pheno_M1[iP]<-grep(pheno_all_M1[iP],pheno
 # the graphical model was thresholded, the tuning parameter for EBIC was set to 0.5 and only the non-zero 
 # associations between the three diastolic function parameters and all other covariates were selected as covariates.
 
-pheno<-as.matrix(na.omit(data_pheno[,-c(1:2)])) # exclude the IDs
+pheno<-as.matrix(na.omit(data_pheno)) 
 net_thresh <- bootnet_EBICglasso(pheno,
                                  tuning = 0.5, # EBICglasso sets tuning to 0.5
                                  threshold = T,unlock=T)
@@ -88,7 +88,7 @@ for (iP in 1:length(pheno_all_M2)){pos_pheno_M2[iP]<-grep(pheno_all_M2[iP],pheno
 # "cutoff" was set to 0.95 allowing more variables to be included in the model, the per-family error rate was 
 # set to 1.0 and the "fitfun" parameter was set as "glmnet.lasso"
 
-pheno<-as.matrix(na.omit(data_pheno[,-c(1:2)])) # exclude the IDs
+pheno<-as.matrix(na.omit(data_pheno)) 
 
 stab.glmnet_ll <- stabsel(x=pheno[,-111], y=pheno[,111] ,fitfun = glmnet.lasso, args.fitfun = list(alpha=1), cutoff = 0.95, PFER =1, B=100)
 stab.glmnet_rr <- stabsel(x=pheno[,-112], y=pheno[,112] ,fitfun = glmnet.lasso, args.fitfun = list(alpha=1), cutoff = 0.95, PFER =1, B=100)
@@ -105,6 +105,7 @@ pheno_all_M3
 phenonames<-colnames(pheno)
 pos_pheno_M3<-0
 for (iP in 1:length(pheno_all_M3)){pos_pheno_M3[iP]<-grep(pheno_all_M3[iP],phenonames)} # position in the pheno of variables selected
+# write.table(pos_pheno_M3, "position_stabsel.txt")
 
 # Plot stability selection
 # plot(stab.glmnet_rr, main="PDSRrr",type="maxsel")
@@ -134,5 +135,5 @@ imcdiag(model_vif,method="VIF", vif=5) # 0 if collinearity is not detected by th
 position_final<-0
 for (iP in 1:ncol(multivar_data_vif)){position_final[iP]<-grep(colnames(multivar_data_vif)[iP],phenonames)} # position in the pheno of variables selected
 
-write.table(position_final, "postion_final.txt")
+write.table(position_final, "position_final.txt")
 # END
