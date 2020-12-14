@@ -244,6 +244,7 @@ bind_rows(input_dat[c(3,6,9)], .id="GWAS_NAME") %>% View(title="repl") # repl
 # there are 3 hits across the 3 gwas that come up in the disc but not the full
 # check them here ...
 # added to genetic_analysis/locuszoom/ - look like fps
+
 hits_tc = c(
   "rs13184632",
   "1:178221156_CA_C",
@@ -253,7 +254,7 @@ hits_tc_meta = getMetadataForImputedSnpsV2(by="snp", hits_tc)
 hits_tc_meta$gwas = c("long_PDSR","LAV","radial_PDSR")
 win = 1e5
 
-for(i in 2:length(hits_tc_meta$RSID)) {
+for(i in 1:length(hits_tc_meta$RSID)) {
   
   stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits_tc_meta$gwas[i], "_disc.bgen.stats"))
   stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF, BETA, SE)
@@ -263,48 +264,75 @@ for(i in 2:length(hits_tc_meta$RSID)) {
   
 }
 
-# plot the replication
+# replication significant?
+
+lead_disc_snps = bind_rows(input_dat[c(1,4,7)], .id="GWAS_NAME") %>% group_by(GWAS_NAME, X2) %>% dplyr::slice(which.min(X16)) %>% filter(X2!=1, X2!=3)
+names(lead_disc_snps)[-1] = header
+
+all_repl = bind_rows(
+  list(
+    radial = read_tsv("data/res_bolt_radial_pdsr_repl_match.txt", col_names=FALSE),
+    long = read_tsv("data/res_bolt_long_pdsr_repl_match.txt", col_names=FALSE),
+    lav = read_tsv("data/res_bolt_lav_repl_match.txt", col_names=FALSE)
+  ),
+  .id="GWAS_NAME"
+)
+names(all_repl)[-1] = header
+all_repl %>% group_by(GWAS_NAME, CHR) %>% dplyr::slice(which.min(P_BOLT_LMM)) %>% filter(CHR!=1, CHR!=3) %>% summarise(p=P_BOLT_LMM<0.05/5, p_value=P_BOLT_LMM)
+
+to_plot = lead_disc_snps %>% left_join(all_repl, by=c("GWAS_NAME","SNP","CHR","BP","ALLELE1","ALLELE0"))
+to_plot %>% ggplot(aes(P_BOLT_LMM.x, P_BOLT_LMM.y)) + geom_point() + geom_vline(xintercept=5e-8) + geom_hline(yintercept=0.05/5)
+to_plot %>% ggplot(aes(BETA.x, BETA.y)) + geom_point() + geom_hline(yintercept=0) + geom_vline(xintercept=0)
+
+# plot the replication - these are the plots from the teamsite conversation
+
+lead_disc_snps = bind_rows(data.frame(GWAS_NAME=NA), lead_disc_snps)
+lead_disc_snps[1,c(1,3)] = lead_disc_snps[2,c(1,3)]
+lead_disc_snps$SNP[1] = "rs1173727"
+lead_disc_snps$BP[1] = 32830521
+lead_disc_snps$gwas_root = c("LAV","LAV","long_PDSR","radial_PDSR","radial_PDSR","radial_PDSR")
 
 gwas_tots = data.frame()
 
-for(variant_ix in 1:length(hits$variant)) {
+for(variant_ix in 1:length(lead_disc_snps$SNP)) {
   
-  print(hits$variant[variant_ix])
-  
-  snp_pos = hits$pos_38[variant_ix]
-  win = 2e6
-  
-  v2g = get_V2G_data(hits$id[variant_ix])
-  v2g = v2g[!unlist(lapply(v2g$qtls, is_empty)),]
+  snp_pos = lead_disc_snps$BP[variant_ix]
+  win = 2e5
   
   region_granges = GenomicRanges::GRanges(
-    seqnames = hits$chr[variant_ix], 
-    ranges = IRanges::IRanges(start=snp_pos-win, end=snp_pos+win), 
+    seqnames = lead_disc_snps$CHR[variant_ix], 
+    ranges = IRanges::IRanges(start=lead_disc_snps$BP[variant_ix]-win, end=lead_disc_snps$BP[variant_ix]+win), 
     strand = "*")
   region_granges
   
-  region_granges_37 = lift_over(region_granges, "38_to_37")
-  region_granges_37 = reduce(makeGRangesFromDataFrame(region_granges_37), min.gapwidth=1e2)
-  region_granges_37  
-  
-  gwas_disc = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_disc.bgen.stats")), header=TRUE)
-  gwas_repl = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_repl.bgen.stats")), header=TRUE)
-  gwas_full = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", hits$chr[variant_ix], " && $3>", hits$pos_37[variant_ix]-win, " && $3<", hits$pos_37[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", hits$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
+  gwas_disc = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", lead_disc_snps$CHR[variant_ix], " && $3>", lead_disc_snps$BP[variant_ix]-win, " && $3<", lead_disc_snps$BP[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", lead_disc_snps$gwas_root[variant_ix], "_disc.bgen.stats")), header=TRUE)
+  gwas_repl = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", lead_disc_snps$CHR[variant_ix], " && $3>", lead_disc_snps$BP[variant_ix]-win, " && $3<", lead_disc_snps$BP[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", lead_disc_snps$gwas_root[variant_ix], "_repl.bgen.stats")), header=TRUE)
+  gwas_full = read.table(pipe(paste0("awk 'NR==1 {print}; $2==", lead_disc_snps$CHR[variant_ix], " && $3>", lead_disc_snps$BP[variant_ix]-win, " && $3<", lead_disc_snps$BP[variant_ix]+win, " {print}' /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", lead_disc_snps$gwas_root[variant_ix], "_full.bgen.stats")), header=TRUE)
   
   gwas = rbind(
     cbind(gwas_disc, group="disc"),
     cbind(gwas_repl, group="repl"),
     cbind(gwas_full, group="full")
   )
-  gwas = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
-  gwas = lift_over(gwas, dir="37_to_38")
-  gwas_tots = rbind(gwas_tots, cbind(gwas, locus=paste(hits$variant[variant_ix], hits$gwas_root[variant_ix], sep="_")))
+  # gwas = makeGRangesFromDataFrame(gwas, keep.extra.columns=TRUE, start.field="BP", end.field="BP")
+  # gwas = lift_over(gwas, dir="37_to_38")
+  gwas_tots = rbind(gwas_tots, cbind(gwas, locus=paste(lead_disc_snps$CHR[variant_ix], lead_disc_snps$SNP[variant_ix], lead_disc_snps$gwas_root[variant_ix], sep="_")))
   
 }
 
-gwas_tots %>% filter(grepl("radial",locus)) %>% ggplot(aes(x=start, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), alpha=0.5, lty=2, color="grey") + facet_wrap(~locus, scales="free")
+gwas_tots_label = gwas_tots %>% group_by(locus, group) %>% summarise(lead_snp=SNP[which.min(P_BOLT_LMM)], P_BOLT_LMM_MIN=P_BOLT_LMM[which.min(P_BOLT_LMM)], BP_MIN=BP[which.min(P_BOLT_LMM)])
+gwas_tots_label$repl_sig = NA
+gwas_tots_label$repl_sig[gwas_tots_label$group=="repl"] = gwas_tots_label$P_BOLT_LMM_MIN[gwas_tots_label$group=="repl"] < 0.05/5
+
+gwas_tots %>% ggplot(aes(x=BP, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = c(-log(5e-8, base=10), -log(0.05/5, base=10)), lty=2, color="red") + facet_wrap(~locus, scales="free") + geom_text_repel(data=gwas_tots_label, aes(x=BP_MIN, y=-log(P_BOLT_LMM_MIN, base=10), label=lead_snp), fontface="bold", size=3, force=0.5, box.padding=0.5)
 
 gwas_tots %>% filter(grepl("radial",locus), group=="repl") %>% ggplot(aes(x=start, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(6.25e-3, base=10), alpha=0.5, lty=2, color="grey") + facet_wrap(~locus, scales="free")
+
+# check the lead snp in the locus ...
+
+all_disc_snps = bind_rows(input_dat[c(1,4,7)], .id="GWAS_NAME")
+names(all_disc_snps)[-1] = header
+all_disc_snps = all_disc_snps %>% left_join(all_repl, by=c("GWAS_NAME","SNP","CHR","BP","ALLELE1","ALLELE0"))
 
 
 # DISCOVERY VERSUS REPLICATION --------------------------------------------
@@ -314,11 +342,48 @@ gwas_tots %>% filter(grepl("radial",locus), group=="repl") %>% ggplot(aes(x=star
 # match_disc_repl.sh
 
 for(i in 1:length(measures)) {
-  
   discovery = input_dat[[which(names(input_dat)==paste0(measures[i], "_full"))]]
-  replication = input_dat[[which(names(input_dat)==paste0(measures[i], "_repl_match"))]]
+  replication = input_dat[[which(names(input_dat)==paste0(measures[i], "_repl"))]]
   print(data.frame(Discovery=discovery$BETA, Replication=replication$BETA) %>% ggplot(aes(Discovery, Replication)) + geom_point() + theme_thesis(20) + ggtitle(measures[i]))
 }
+
+
+# DISC REPL CHECK ---------------------------------------------------------
+
+roots = c("lav","long_pdsr","radial_pdsr")
+options(stringsAsFactors=FALSE)
+
+hits = list(
+  lav = c("rs59985551","rs1173727","rs35489511"),
+  long = c("rs2275950","rs11970286","rs10261575","rs11535974","rs499715"),
+  radial = c("rs528236848","rs9388001","rs2234962","rs11170519","rs369533272")
+)
+
+hits_all = vector("list", length(hits))
+names(hits_all) = roots
+
+for(i in 1:length(hits_all)) {
+  
+  full = read_tsv(paste0("data/res_bolt_", roots[i], "_full.txt"), col_names=FALSE)
+  disc = read_tsv(paste0("data/res_bolt_", roots[i], "_disc_match.txt"), col_names=FALSE)
+  repl = read_tsv(paste0("data/res_bolt_", roots[i], "_repl_match.txt"), col_names=FALSE)
+  
+  hits_all[[i]] = data.frame(
+    hits = hits[[i]],
+    full_p = full$X16[match(hits[[i]], full$X1)],
+    full_e = full$X11[match(hits[[i]], full$X1)],
+    disc_p = disc$X16[match(hits[[i]], disc$X1)],
+    disc_e = disc$X11[match(hits[[i]], disc$X1)],
+    repl_p = repl$X16[match(hits[[i]], repl$X1)],
+    repl_e = repl$X11[match(hits[[i]], repl$X1)]
+  )
+}
+
+hits_all = bind_rows(hits_all, .id="id")
+hits_all
+hits_all %>% dplyr::select(c(1,2,3,5,7)) %>% gather("Group","P",3:5) %>% ggplot(aes(fill=Group, y=-log(P,base=10), x=hits)) + geom_bar(position="dodge", stat="identity") + theme_thesis(20) + facet_wrap(~id, scales="free") + geom_hline(yintercept=-log(5e-8, base=10), linetype="dashed", color="red", size=1) + ylab("P")
+
+hits_all %>% dplyr::select(c(1,2,4,6,8)) %>% gather("Group","Beta",3:5) %>% ggplot(aes(fill=Group, y=Beta, x=hits)) + geom_bar(position="dodge", stat="identity") + theme_thesis(20) + facet_wrap(~id, scales="free")
 
 
 # CONDITIONAL ANALYSIS ----------------------------------------------------
@@ -458,44 +523,6 @@ for(i in 1:length(roots)) {
   # could different gene scores be used?
   
 }
-
-
-# DISC REPL CHECK ---------------------------------------------------------
-
-roots = c("LAV","long_PDSR","radial_PDSR")
-options(stringsAsFactors=FALSE)
-
-hits = list(
-  lav = c("rs59985551","rs1173727","rs35489511"),
-  long = c("rs2275950","rs11970286","rs10261575","rs11535974","rs499715"),
-  radial = c("rs528236848","rs9388001","rs2234962","rs11170519","rs369533272")
-)
-
-hits_all = vector("list", length(hits))
-names(hits_all) = roots
-
-for(i in 1:length(hits_all)) {
-  
-  full = read_tsv(paste0("data/res_bolt_", roots[i], "_full.txt"), col_names=FALSE)
-  disc = read_tsv(paste0("data/res_bolt_", roots[i], "_disc_match.txt"), col_names=FALSE)
-  repl = read_tsv(paste0("data/res_bolt_", roots[i], "_repl_match.txt"), col_names=FALSE)
-  
-  hits_all[[i]] = data.frame(
-    hits = hits[[i]],
-    full_p = full$X16[match(hits[[i]], full$X1)],
-    full_e = full$X11[match(hits[[i]], full$X1)],
-    disc_p = disc$X16[match(hits[[i]], disc$X1)],
-    disc_e = disc$X11[match(hits[[i]], disc$X1)],
-    repl_p = repl$X16[match(hits[[i]], repl$X1)],
-    repl_e = repl$X11[match(hits[[i]], repl$X1)]
-  )
-}
-
-hits_all = bind_rows(hits_all, .id="id")
-hits_all
-hits_all %>% select(c(1,2,3,5,7)) %>% gather("Group","P",3:5) %>% ggplot(aes(fill=Group, y=-log(P,base=10), x=hits)) + geom_bar(position="dodge", stat="identity") + theme_thesis(20) + facet_wrap(~id, scales="free") + geom_hline(yintercept=-log(5e-8, base=10), linetype="dashed", color="red", size=1) + ylab("P")
-
-hits_all %>% select(c(1,2,4,6,8)) %>% gather("Group","Beta",3:5) %>% ggplot(aes(fill=Group, y=Beta, x=hits)) + geom_bar(position="dodge", stat="identity") + theme_thesis(20) + facet_wrap(~id, scales="free")
 
 
 # GARFIELD ----------------------------------------------------------------
@@ -1782,9 +1809,7 @@ ggplot(coloc_plot_gwas, aes(x=start, y=log_10, color=Group)) + geom_point(alpha=
 # LONGITUDINAL - RS11535974 -----------------------------------------------
 
 
-
 # LONGITUDINAL - RS499715 -------------------------------------------------
-
 
 
 # LAV - RS59985551 --------------------------------------------------------
