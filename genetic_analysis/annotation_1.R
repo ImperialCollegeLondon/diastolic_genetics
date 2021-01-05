@@ -42,6 +42,17 @@ png(filename="data/manhattan_full_radial.png", width=1200, height=350)
 manh_plot(stats, pcut_label=1e-5)
 dev.off()
 
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "radial_PDSR", "_full_apr_covar.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs2234962","rs369533272"), stats$SNP)] = "Radial PDSR"
+stats$gene[match(c("rs2234962","rs369533272"), stats$SNP)] = c("BAG3","FHOD3")
+png(filename="data/manhattan_full_radial_apr_covar.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
 # lav
 
 stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "LAV", "_disc.bgen.stats"))
@@ -66,6 +77,17 @@ png(filename="data/manhattan_full_lav.png", width=1200, height=350)
 manh_plot(stats, pcut_label=1e-5)
 dev.off()
 
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "LAV", "_full_apr_covar.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs1173727","rs59985551","rs35489511"), stats$SNP)] = "LAV"
+stats$gene[match(c("rs1173727","rs59985551","rs35489511"), stats$SNP)] = c("NPR3","EFEMP1","CDK6")
+png(filename="data/manhattan_full_lav_apr_covar.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
 # long
 
 stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "long_PDSR", "_disc.bgen.stats"))
@@ -87,6 +109,17 @@ stats$gene = NA
 stats$phenotype[match(c("rs11970286","rs2275950","rs10261575","rs11535974","rs499715"), stats$SNP)] = "Longitudinal PDSR"
 stats$gene[match(c("rs11970286","rs2275950","rs10261575","rs11535974","rs499715"), stats$SNP)] = c("PLN","TRIM63","PHF14","AC023158.1","FHOD3")
 png(filename="data/manhattan_full_long.png", width=1200, height=350)
+manh_plot(stats, pcut_label=1e-5)
+dev.off()
+
+stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", "long_PDSR", "_full_apr_covar.bgen.stats"))
+stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
+stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
+stats$phenotype = NA
+stats$gene = NA
+stats$phenotype[match(c("rs11535974"), stats$SNP)] = "Longitudinal PDSR"
+stats$gene[match(c("rs11535974"), stats$SNP)] = c("AC023158.1")
+png(filename="data/manhattan_full_long_apr_covar.png", width=1200, height=350)
 manh_plot(stats, pcut_label=1e-5)
 dev.off()
 
@@ -326,14 +359,6 @@ gwas_tots_label$repl_sig[gwas_tots_label$group=="repl"] = gwas_tots_label$P_BOLT
 
 gwas_tots %>% ggplot(aes(x=BP, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = c(-log(5e-8, base=10), -log(0.05/5, base=10)), lty=2, color="red") + facet_wrap(~locus, scales="free") + geom_text_repel(data=gwas_tots_label, aes(x=BP_MIN, y=-log(P_BOLT_LMM_MIN, base=10), label=lead_snp), fontface="bold", size=3, force=0.5, box.padding=0.5)
 
-gwas_tots %>% filter(grepl("radial",locus), group=="repl") %>% ggplot(aes(x=start, y=-log(P_BOLT_LMM, base=10), color=group)) + geom_point(alpha=0.5, size=1) + theme_thesis(15) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(6.25e-3, base=10), alpha=0.5, lty=2, color="grey") + facet_wrap(~locus, scales="free")
-
-# check the lead snp in the locus ...
-
-all_disc_snps = bind_rows(input_dat[c(1,4,7)], .id="GWAS_NAME")
-names(all_disc_snps)[-1] = header
-all_disc_snps = all_disc_snps %>% left_join(all_repl, by=c("GWAS_NAME","SNP","CHR","BP","ALLELE1","ALLELE0"))
-
 
 # DISCOVERY VERSUS REPLICATION --------------------------------------------
 
@@ -393,44 +418,39 @@ require(snpStats)
 require(jsonlite)
 require(httr)
 
-Sys.setenv(R_CONFIG_ACTIVE="imaging")
+Sys.setenv(R_CONFIG_ACTIVE="standard")
 
 # need snp, a1, a2, freq, beta, se, p, n
-# for all alleles in locus?
+# for full gwas
 
-# pick a dataset
+roots = c("radial_PDSR","long_PDSR","LAV")
 
-for(i in 1:length(measures)) {
+for(i in 1:length(roots)) {
   
-  dat = input_dat[[which(names(input_dat)==paste0(measures[i], "_full"))]]
+  stats = read_tsv(paste0("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_", roots[i], "_full.bgen.stats"))
+  stats = stats %>% dplyr::select(CHR, SNP, ALLELE0, ALLELE1, BETA, SE, P_BOLT_LMM) %>% dplyr::rename(A2=ALLELE1, A1=ALLELE0, b=BETA, se=SE, p=P_BOLT_LMM) %>% mutate(N=39559)
   
-  locus_plots = dat %>% group_by(CHR) %>% do(plots = ggplot(data=., aes(x=BP, y=-log(P_BOLT_LMM, base=10))) + geom_point() + geom_text_repel(aes(label=SNP), fontface="bold", size=4, force=0.5) + ggtitle(.$CHR[1]))
-  locus_plots$plots
-  dat %>% group_by(CHR) %>% dplyr::slice(which.min(P_BOLT_LMM)) %>% View()
+  # get snp stats by chromosome
   
-  dat_filt = dat %>% dplyr::select(SNP, ALLELE1, ALLELE0, BETA, SE, P_BOLT_LMM) %>% dplyr::rename(A1=ALLELE1, A2=ALLELE0, b=BETA, se=SE, p=P_BOLT_LMM) %>% mutate(N=2e4)
-  head(dat_filt)
+  # chrs = unique(stats$CHR)
+  # snp_chrs = vector("list", length(chrs))
+  # names(snp_chrs) = chrs
+  # for(j in 1:length(chrs)) {
+  #   print(paste("Chr:", chrs[j]))
+  #   snp_chrs[[j]] = getMetadataForImputedSnps(stats %>% filter(CHR==chrs[j]) %>% dplyr::select(SNP) %>% unlist() %>% as.character() %>% unique()) %>% dplyr::select(-SNP,-Info) %>% dplyr::rename(SNP=RSID, A1M=A1, A2M=A2)
+  # }
+  # snp_chrs_df = bind_rows(snp_chrs, .id="CHR")  
   
-  # get snp stats
-  dat_meta = getMetadataForImputedSnps(dat_filt$SNP) %>% dplyr::select(-SNP,-Info) %>% dplyr::rename(SNP=RSID, A1M=A1, A2M=A2)
+  # join freqs to df
   
-  dat_comb = dplyr::left_join(dat_filt, dat_meta, by="SNP") %>% dplyr::mutate(MAF=dplyr::if_else(A1==MA, MAF, 1-MAF)) 
-  dat_comb = dat_comb %>% dplyr::select(SNP, A1, A2, MAF, b, se, p, N) %>% dplyr::rename(freq=MAF) %>% dplyr::filter(!is.na(freq))
+  stats = stats %>% dplyr::left_join(snp_chrs_df %>% dplyr::select(SNP, MAF, MA), by="SNP") %>% dplyr::mutate(MAF=dplyr::if_else(A1==MA, MAF, 1-MAF)) 
+  stats = stats %>% dplyr::select(SNP, A1, A2, MAF, b, se, p, N) %>% dplyr::rename(freq=MAF) %>% dplyr::filter(!is.na(freq))
   
-  source("R/conditional_analysis.R")
+  prior_snps = input_dat$lav_full %>% dplyr::select(SNP, CHR)
   
-  chrs = unique(dat$CHR)
-  for(j in 1:length(chrs)) {
-    dat_ca = conditional_analysis(dat_comb, dir="/gpfs01/bhcbio/projects/UK_Biobank/20170616_UK_Biobank_Genotyping/Programs/TargetAnalyses/Tie2/test", thres=5e-8, chr=chrs[j])
-  }
-  
-  # test_ma = read_tsv("data/madata_example")
-  # dat_ca = conditional_analysis(test_ma, dir="/gpfs01/bhcbio/projects/UK_Biobank/20170616_UK_Biobank_Genotyping/Programs/TargetAnalyses/Tie2/test", thres=5e-8, chr=9)
-  
+  dat_ca = conditional_analysis(ma_file=stats, prior_snps=prior_snps, dir="~/projects/diastolic_genetics/cojo", thresh=5e-8)
+
 }
-
-lmm %>% group_by(X2) %>% dplyr::slice(order(X16)[1:2])
-lmm %>% group_by(X2) %>% summarise(start=min(X3), end=max(X3))
 
 
 # LOCUS ZOOM --------------------------------------------------------------
