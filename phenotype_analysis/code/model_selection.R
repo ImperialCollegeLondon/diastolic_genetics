@@ -1,17 +1,11 @@
 
 install.packages("data.table")
-install.packages("BeSS")
-install.packages("devtools")
-library(devtools)
-devtools::install_github("SachaEpskamp/bootnet")
 install.packages("stabs")
 install.packages("glmnet")
 install.packages("car")
 install.packages("mctest")
 
 library(data.table)
-library(BeSS)
-library("bootnet")
 library(stabs)
 library(glmnet)
 library(car)
@@ -22,66 +16,7 @@ library(mctest)
 data_pheno <- read.table("Phenotypes_40k.txt", header = TRUE)# load all 110 non-imaging and 31 imaging phenotype data
 pheno<-as.matrix(na.omit(data_pheno))
 
-# Method 1 - Best subset selection approach with "beSS"
-# using GPDAS algorithm to select the optimal subset selection k and the best model is determined by Extended Bayesian Information Criterion (EBIC)
-
-# PDSRll
-fit.seqll <- bess(pheno[,-111], pheno[,111], method="sequential", epsilon = 0)
-# PDSRrr
-fit.seqrr <- bess(pheno[,-112], pheno[,112], method="sequential", epsilon = 0)
-# LAVmaxi
-fit.seqlav <- bess(pheno[,-127], pheno[,127], method="sequential", epsilon = 0)
-
-K.opt.ebic.ll <- which.min(fit.seqll$EBIC)
-K.opt.ebic.rr <- which.min(fit.seqrr$EBIC)
-K.opt.ebic.lav <- which.min(fit.seqlav$EBIC)
-
-# PDSRll
-fit.one.ll <- bess.one(pheno[,-111], pheno[,111], s = K.opt.ebic.ll, family = "gaussian")
-bm.one.ll <- fit.one.ll$bestmodel
-#PDSRrr
-fit.one.rr <- bess.one(pheno[,-112], pheno[,112], s = K.opt.ebic.rr, family = "gaussian")
-bm.one.rr <- fit.one.rr$bestmodel
-#LAVmaxi 
-fit.one.lav <- bess.one(pheno[,-127], pheno[,127], s = K.opt.ebic.lav, family = "gaussian")
-bm.one.lav <- fit.one.lav$bestmodel
-
-pheno_long<-names(bm.one.ll$coefficients)[-1] # PDSRll
-pheno_radial<-names(bm.one.rr$coefficients)[-1] #ODSRrr
-pheno_lav<-names(bm.one.lav$coefficients)[-1] #LAVmaxi
-pheno_all_M1<-c(pheno_long,pheno_radial,pheno_lav) # bind all the variables selected from the beSS
-pheno_all_M1<-(unique(pheno_all_M1))
-phenonames<-colnames(pheno)
-pheno_all_M1<-substring(pheno_all_M1,6) # exclude "xbest"
-# pheno_all_M1 all variables selected
-
-pos_pheno_M1<-0
-for (iP in 1:length(pheno_all_M1)){pos_pheno_M1[iP]<-grep(pheno_all_M1[iP],phenonames)} # position in the pheno of variables selected
-
-# Method 2 - EBIC on the graphical LASSO model implemented in the R package "bootnet"
-# which employs a regularizing penalty that can lead to parameter estimates of exactly zero.
-# the graphical model was thresholded, the tuning parameter for EBIC was set to 0.5 and only the non-zero 
-# associations between the three diastolic function parameters and all other covariates were selected as covariates.
-
-net_thresh <- bootnet_EBICglasso(pheno,
-                                 tuning = 0.5, # EBICglasso sets tuning to 0.5
-                                 threshold = T,unlock=T)
-net<-net_thresh[["results"]][["optnet"]]
-nll<-which(net[,111]==0)
-nrr<-which(net[,112]==0)
-nlav<-which(net[,127]==0)
-pheno_long<-names(net[-nll,111]) #PDSRll
-pheno_radial<-names(net[-nrr,112]) # PDSRrr
-pheno_lav<-names(net[-nlav,127]) # LAVmaxi
-pheno_all_M2<-c(pheno_long,pheno_radial,pheno_lav) # bind all the variables selected from the EBICglasso
-pheno_all_M2<-(unique(pheno_all_M2))
-# pheno_all_M2
-
-phenonames<-colnames(pheno)
-pos_pheno_M2<-0
-for (iP in 1:length(pheno_all_M2)){pos_pheno_M2[iP]<-grep(pheno_all_M2[iP],phenonames)} # position in the pheno of variables selected
-
-# Method 3 - Stability selection with "stabsel"
+# Stability selection with "stabsel"
 # uses resampling to assess the stability of selected imaging phenotypes for a robust  selection of covariates.
 # "cutoff" was set to 0.95 allowing more variables to be included in the model, the per-family error rate was 
 # set to 1.0 and the "fitfun" parameter was set as "glmnet.lasso"
