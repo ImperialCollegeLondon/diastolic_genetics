@@ -13,7 +13,7 @@ library(mctest)
 
 ### Multivariate LASSO regresion analysis with model  selection for selecting the non-imaging phenotypes 
 
-data_pheno <- read.table("Phenotypes_40k.txt", header = TRUE)# load all 110 non-imaging and 31 imaging phenotype data
+data_pheno <- read.table("Phenotypes_40k_imp.txt", header = TRUE)# load all 110 non-imaging and 31 imaging phenotype data
 pheno<-as.matrix(na.omit(data_pheno))
 
 # Stability selection with "stabsel"
