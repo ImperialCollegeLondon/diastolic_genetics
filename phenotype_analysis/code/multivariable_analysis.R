@@ -10,7 +10,6 @@ multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
 beta_ml<-matrix(0,ncol=31, nrow=10)
 mat_pv<-matrix(0,ncol=31, nrow=10)
-t_BH<-matrix(0,ncol=31,1)
 rsq<-matrix(0,ncol=31,1)
 conflist<-vector(mode="list",length=31)
 
@@ -22,7 +21,6 @@ for (iN in 11:41){
   p.cor<-p.adjust(pval,method = "BH") # adjust using Benjamini - Hochberg procedure
   names(p.cor)<-NULL
   beta<-as.vector(t(coef(cv[[1]], complete=TRUE)))[-1] # get beta coefficient
-  t_BH[iT]<-get_bh_threshold(pval, 0.05) # get BH threshold
   smcv<-summary(cv[[1]])
   rsq[iT]<-smcv$r.squared # rsquared
   conflist[iT]<-list(confint(cv[[1]],level=0.95)[-1,]) # confidence intervals
@@ -38,9 +36,18 @@ rownames(beta_ml)<-colnames(multidata)[1:10]
 colnames(mat_pv)<-colnames(multidata)[11:41]
 rownames(mat_pv)<-colnames(multidata)[1:10]
 
-# prepare for the bubble plot
-
-mt_Bh<-(-log10(mean(t_BH))) # BH threshold
+# This implementation provides consistent results as the FDR threshold function at
+# https://warwick.ac.uk/fac/sci/statistics/staff/academic-research/nichols/software/fdr/FDR.m
+p <- sort(mat_pv)
+V <- length(p)
+I <- t(1:V)
+cVID <- 1
+cVN <- sum(1/(1:V))
+pID <- p[max(which(p<=((I/V)*(0.05/cVID))))]
+pN <- p[max(which(p<=((I/V)*(0.05/cVN))))]
+mt_Bh<--log10(pN) # get FDR threshold
+             
+# prepare for the bubble plot            
 colnames(mat_pv)<-c( "Strain rates","Strain rates","Strains",
                    "Strains","Strains", "LV", "AAo - DAo","AAo - DAo",
                    "AAo - DAo","AAo - DAo","AAo - DAo","AAo - DAo",
