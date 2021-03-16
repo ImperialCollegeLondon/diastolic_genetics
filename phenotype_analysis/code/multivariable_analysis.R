@@ -42,7 +42,7 @@ rownames(mat_pvcor)<-colnames(multidata)[1:10]
 
 # This implementation provides consistent results as the FDR threshold function at
 # https://warwick.ac.uk/fac/sci/statistics/staff/academic-research/nichols/software/fdr/FDR.m
-p <- sort(mat_pv)
+p <- sort(mat_pvcor)
 V <- length(p)
 I <- t(1:V)
 cVID <- 1
