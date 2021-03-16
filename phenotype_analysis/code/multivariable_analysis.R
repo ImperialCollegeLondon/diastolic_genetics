@@ -52,13 +52,13 @@ pN <- p[max(which(p<=((I/V)*(0.05/cVN))))]
 mt_Bh<--log10(pN) # get FDR threshold
              
 # prepare for the bubble plot            
-colnames(mat_pv)<-c( "Strain rates","Strain rates","Strains",
+colnames(mat_pvcor)<-c( "Strain rates","Strain rates","Strains",
                    "Strains","Strains", "LV", "AAo - DAo","AAo - DAo",
                    "AAo - DAo","AAo - DAo","AAo - DAo","AAo - DAo",
                    "LV","LV","LV","LV","LA","LA","LA","LV","LV","LV","LA","RV","RV",
                    "RV","RA","RA","RA","RV","RA")
 multivar_b = chordDiagram(beta_ml) # beta coefficients
-multivar_p = chordDiagram(mat_pv) # p-values
+multivar_p = chordDiagram(mat_pvcor) # p-values
 multivar_data<-cbind(multivar_p[,c(2,1,3)],multivar_b[,2:4]) # bind
 colnames(multivar_data)<-c("Imaging_group","Nonimaging","LogP","Imaging","Beta", "AbsBeta")
 multivar_data$AbsBeta<-abs(multivar_data$AbsBeta)
