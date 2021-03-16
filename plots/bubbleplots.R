@@ -61,7 +61,7 @@ ggplotly(p, tooltip="text")%>%layout(yaxis=list(title=TeX("\\text{Beta coefficie
 
 # Plot for -log10(P)
 
-mt_Bh<-median(-log10(t_BH)) # get the median value form t_BH calculated from phenotype_statistical_analysis.R
+mt_Bh # get the FDR threshold calculated from phenotype_statistical_analysis.R
 ytick<-c(-6,mt_Bh,50,100,150,200,250,300)
 
 p<-multiple_analysis %>%
