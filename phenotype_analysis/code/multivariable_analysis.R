@@ -10,6 +10,7 @@ multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
 beta_ml<-matrix(0,ncol=31, nrow=10)
 mat_pv<-matrix(0,ncol=31, nrow=10)
+mat_pvcor<-matrix(0,ncol=31, nrow=10)
 rsq<-matrix(0,ncol=31,1)
 conflist<-vector(mode="list",length=31)
 
@@ -26,7 +27,8 @@ for (iN in 11:41){
   conflist[iT]<-list(confint(cv[[1]],level=0.95)[-1,]) # confidence intervals
   
   beta_ml[,iT]<-beta
-  mat_pv[,iT]<-p.cor[-1]
+  mat_pv[,iT]<-pval[-1]
+  mat_pvcor[,iT]<-p.cor[-1]
   iT<-iT+1
 }
 # beta coefficients
@@ -35,6 +37,8 @@ rownames(beta_ml)<-colnames(multidata)[1:10]
 # p-values
 colnames(mat_pv)<-colnames(multidata)[11:41]
 rownames(mat_pv)<-colnames(multidata)[1:10]
+colnames(mat_pvcor)<-colnames(multidata)[11:41]
+rownames(mat_pvcor)<-colnames(multidata)[1:10]
 
 # This implementation provides consistent results as the FDR threshold function at
 # https://warwick.ac.uk/fac/sci/statistics/staff/academic-research/nichols/software/fdr/FDR.m
