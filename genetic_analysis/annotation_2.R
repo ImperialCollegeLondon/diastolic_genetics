@@ -28,7 +28,7 @@ eqtlgen = read_tsv("../data/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRem
 # VARIANT DATA ------------------------------------------------------------
 
 load("r_data/hits.RData")
-variant_ix = 6
+variant_ix = 1
 list.files(paste0("data/", hits$variant[variant_ix]))
 snp_pos = hits$pos_38[variant_ix]
 win = 2e6
@@ -50,6 +50,17 @@ region_granges_37 = lift_over(region_granges, "38_to_37")
 region_granges_37 = reduce(makeGRangesFromDataFrame(region_granges_37), min.gapwidth=1e2)
 end(region_granges_37) = end(region_granges_37) + 2e6
 start(region_granges_37) = start(region_granges_37) - 1e6
+
+# annotate output file
+
+# hits_meta = getMetadataForImputedSnps(hits$variant)
+# hits = left_join(hits, dplyr::select(hits_meta, RSID,A1,A2,MAF,MA), by=c("variant"="RSID"))
+
+# gwas = bind_rows(input_dat[c(2,5,8)], .id="GWAS_NAME") # full
+# gwas$GWAS_NAME = str_replace(gwas$GWAS_NAME, "_full", "")
+# hits = left_join(hits, dplyr::select(gwas, GWAS_NAME, SNP, BETA, P_BOLT_LMM), by=c("variant"="SNP","gwas"="GWAS_NAME"))
+# hits = hits[c(11,13,2,5,7,4,10,1,6,3),]
+# write_csv(hits, "r_data/hits.csv")
 
 
 # eQTL GET ----------------------------------------------------------------

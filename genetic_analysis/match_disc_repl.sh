@@ -10,3 +10,9 @@ myarr=($(awk '{ print $1 }' data/res_bolt_lav_disc.txt))
 
 # zcat /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_repl.bgen.stats.gz | ( IFS='|'; grep -E "^(${myarr[*]})\>" ) > data/res_bolt_radial_pdsr_repl_disc_match.txt
 cat /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_repl.bgen.stats | ( IFS='|'; grep -E "^(${myarr[*]})\>" ) > data/res_bolt_lav_repl_disc_match.txt
+
+myarr=($(awk '{ print $1 }' data/res_bolt_long_pdsr_disc.txt))
+cat /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_long_PDSR_repl.bgen.stats | ( IFS='|'; grep -E "^(${myarr[*]})\>" ) > data/res_bolt_long_pdsr_repl_disc_match.txt
+
+myarr=($(awk '{ print $1 }' data/res_bolt_radial_pdsr_disc.txt))
+cat /gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_repl.bgen.stats | ( IFS='|'; grep -E "^(${myarr[*]})\>" ) > data/res_bolt_radial_pdsr_repl_disc_match.txt
