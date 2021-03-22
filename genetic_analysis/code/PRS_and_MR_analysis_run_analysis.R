@@ -15,43 +15,6 @@
 ## tmpdir/plink.tmpdir: path to directories for storing temporary results
 ##
 
-## del start
-radial <- read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_radial_PDSR_full.bgen.stats", header=TRUE)
-radialTab <- radial %>% dplyr::rename(P=P_BOLT_LMM, ESTIMATE=BETA)
-radialTab$MAF <- apply(cbind(radialTab$A1FREQ, 1-radialTab$A1FREQ), 1, min)
-rm(radial)
-
-long <- read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_long_PDSR_full.bgen.stats", header=TRUE)
-longTab <- long %>% dplyr::rename(P=P_BOLT_LMM, ESTIMATE=BETA)
-longTab$MAF <- apply(cbind(longTab$A1FREQ, 1-longTab$A1FREQ), 1, min)
-rm(long)
-
-lav <- read.table("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Results/GWAS/GWAS_diastolic_BOLT/Results/bolt_LAV_full.bgen.stats", header=TRUE)
-lavTab <- lav %>% dplyr::rename(P=P_BOLT_LMM, ESTIMATE=BETA)
-lavTab$MAF <- apply(cbind(lavTab$A1FREQ, 1-lavTab$A1FREQ), 1, min)
-rm(lav)
-
-bgen_file_for_chrom <- list()
-for (i in 1:22) {
-  bgen_file_for_chrom[[i]] = file.path(config::get("imputation_dir"), paste0("_004_ukb_imp_chr", 
-                                                                             i, "_v3.bgen"))
-}
-sample_file <- config::get("sample_autosome_file")
-tmpdir <- "/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/test"
-plink.tmpdir <- "/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/test"
-withdrawn_samples <- "/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Data/Original/WithdrawnSamples/w40616_20200820.csv"
-tmpdir="/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/test"
-plink.tmpdir="/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/test"
-
-# get MRI subjects
-mri_subjects <- data.table::fread("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Data/Original/Phenotypes/ImperialPhenos/clinical_measures_39k_collated_11052020.csv") %>% dplyr::pull(eid_40616)
-mri_subjects_2 <- data.table::fread("/gpfs01/bhcbio/projects/UK_Biobank/20190102_UK_Biobank_Imaging/Data/Original/Phenotypes/ImperialPhenos/clinical_measures_27k_collated_qced_04032020.csv")%>% dplyr::pull(eid_40616)
-phenotypes <- readSexAndAge() 
-imaging <- mri_subjects
-non_imaging <- phenotypes$SID[which(!(phenotypes$SID %in% mri_subjects))] 
-## del end
-
-
 ###################### Step 1: perform clumping to identify independent signals #############################
 
 #### radial PDSR
@@ -97,29 +60,6 @@ lavSNPs <- lav[which(lav!="")]
 ## - pca is a data frame containing SID plus the first ten principal components
 ## - phenotypes_bin is a data frame containing all binary traits which we want to consider for the PheWAS
 ## - phenotypes_quant is a data frame containing all quantitative traits which we want to consider for the PheWAS
-
-##del start
-geno <- getTibbleFromSnpMatrix(getImputedV3GenotypesForVariants(c(radialSNPs, longSNPs, lavSNPs)))
-pca <- readPCA()
-age <- readSexAndAge(2)
-quant <- readProcessedQuantTraits(2) %>% dplyr::rename(lav=LAV.max_log)
-quant2 <- readProcessedQuantTraits(0) 
-covariates <- age
-
-tmp <- dplyr::left_join(pca, age, by="SID")
-pheno <- dplyr::left_join(tmp, quant, by="SID")
-phenotypes_quant <- quant2
-phenotypes_bin <- readProcessedBinaryTraits()[,1:3]
-
-names(geno)[-1] <- paste0("x_", names(geno)[-1])
-names(geno)[-1] <- gsub(":", "_", names(geno)[-1])
-radialSNPs <-  paste0("x_", radialSNPs)
-radialSNPs <- gsub(":", "_", radialSNPs)
-longSNPs <-  paste0("x_", longSNPs)
-longSNPs <- gsub(":", "_", longSNPs)
-lavSNPs <-  paste0("x_", lavSNPs)
-lavSNPs <- gsub(":", "_", lavSNPs)
-## end del
 
 #### radial PDSR
 
@@ -224,11 +164,6 @@ top_traits <- Long_quant$phenotype[order(pe)[1:10]]
 
 ###################### Step 3: MR analysis ###################################################################
 
-## del start
-diastolic_gwas <- radialTab
-nondiastolic_gwas <- radialTab
-## del stop
-
 ## Assumption: GWAS summary stats for diastolic and non-diastolic traits are stored within a data frame with 
 ## the following columns:
 ## * P: containing the P-values
@@ -243,5 +178,5 @@ nondiastolic_gwas <- radialTab
 
 ## example run
 mr_analysis(diastolic_gwas=diastolic_gwas, nondiastolic_gwas=nondiastolic_gwas, name_diastolic="PDSR_ll", name_nondiastolic="diastolic_blood_pressure", score_threshold=10^-6,
-clump_kb=1000, clump_r2=0.2, tmpdir=tmpdir, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file, minMaf=0)
+clump_kb=1000, clump_r2=0.1, tmpdir=tmpdir, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file, minMaf=0)
 
