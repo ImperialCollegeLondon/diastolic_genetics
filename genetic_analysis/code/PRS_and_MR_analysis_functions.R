@@ -26,7 +26,7 @@ filter_bgen_to_bed <- function (rs_file, outdir, bgen_file_for_chrom, sample_fil
                                                                     "\\.", "_")), outdir, fileext = ".bgen")
   #cmd = paste0("bgen/bgen-112018/bin/bgenix -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
   #             " > ", filtered_bgen)
-  cmd = config::get("bgenix_exe")
+  cmd = "bgenix_exe"
   cmd = paste0(cmd, " -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
                " > ", filtered_bgen)
   system(cmd)
@@ -35,7 +35,7 @@ filter_bgen_to_bed <- function (rs_file, outdir, bgen_file_for_chrom, sample_fil
   # export data as bed
   plinkfile = tempfile("plink", outdir)
   #cmd = paste0("Plink_2.00_20190716/plink2 --out \"", plinkfile, "\" ")
-  cmd <- config::get("plink20_exe")
+  cmd <- "plink20_exe"
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, "--bgen \"", filtered_bgen, "\" ")
   cmd = paste0(cmd, "--sample \"", sample_file, 
@@ -67,10 +67,8 @@ plink_clumping <- function (plink_basename, score_file, outdir, clump_p1, clump_
   plinkfile = tempfile("plink", outdir)
   
   ## run clumping with PLINK
-  cmd <- config::get("plink19_exe")
+  cmd <- "plink19_exe"
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
-  #cmd <- "plink-1.90/plink"
-  #cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, " --bfile \"", plink_basename, "\" ")
   cmd = paste0(cmd, "--remove-fam \"", withdrawn_samples, 
                "\" ")
@@ -111,7 +109,7 @@ plink_clumping <- function (plink_basename, score_file, outdir, clump_p1, clump_
 ##
 ## Output: a list (one entry per chromsome) containing data frames with selected SNPs and P-values
 
-gwas_clumping <- function(score_input, pval="P", rsid="SNP", chr="CHR", MAFfreq="MAF", score_threshold=5*10^-8, 
+gwas_clumping <- function(score_input, pval="P", rsid="SNP", chr="CHR", MAFfreq="MAF", score_threshold=10^-6, 
                           clump_kb=1000, clump_r2=0.1, 
                           snpset=NA, tmpdir, plink.tmpdir, minMaf=0, bgen_file_for_chrom, sample_file) {
   
