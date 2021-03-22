@@ -370,7 +370,7 @@ mr_analysis <- function(diastolic_gwas, nondiastolic_gwas, name_diastolic, name_
   presso1 <- data.frame(bx=mr_1$bx, bxse=mr_1$bxse, 
                         by=mr_1$by, byse=mr_1$byse, snps=mr_1$SNP)
   presso_tmp <-  try(MRPRESSO::mr_presso(BetaOutcome = "by", BetaExposure = "bx", SdOutcome = "byse", SdExposure = "bxse", 
-                                         OUTLIERtest = TRUE, DISTORTIONtest = TRUE, data = presso1, NbDistribution = 1000,  
+                                         OUTLIERtest = TRUE, DISTORTIONtest = TRUE, data = presso1, NbDistribution = 5000,  
                                          SignifThreshold = 0.05))
   if (class(presso_tmp)=="try-error") {
     presso_tmp <- data.frame(Method="Outlier-corrected", Estimate=NA, Sd=NA, "P-value"=-1)
