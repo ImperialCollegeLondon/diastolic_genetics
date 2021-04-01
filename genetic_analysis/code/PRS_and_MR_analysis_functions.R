@@ -24,17 +24,13 @@ filter_bgen_to_bed <- function (rs_file, outdir, bgen_file_for_chrom, sample_fil
   # extract SNPs from SNP list (rs_file)
   filtered_bgen = tempfile(paste0("filtered_", stringr::str_replace(base::basename(rs_file), 
                                                                     "\\.", "_")), outdir, fileext = ".bgen")
-  #cmd = paste0("bgen/bgen-112018/bin/bgenix -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
-  #             " > ", filtered_bgen)
-  cmd = config::get("bgenix_exe")
-  cmd = paste0(cmd, " -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
+  cmd = paste0("bgen/bgen-112018/bin/bgenix -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
                " > ", filtered_bgen)
   system(cmd)
   print(cmd)
   
   # export data as bed
-  plinkfile = tempfile("plink", outdir)
-  #cmd = paste0("Plink_2.00_20190716/plink2 --out \"", plinkfile, "\" ")
+  cmd = paste0("Plink_2.00_20190716/plink2 --out \"", plinkfile, "\" ")
   cmd <- config::get("plink20_exe")
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, "--bgen \"", filtered_bgen, "\" ")
@@ -67,10 +63,8 @@ plink_clumping <- function (plink_basename, score_file, outdir, clump_p1, clump_
   plinkfile = tempfile("plink", outdir)
   
   ## run clumping with PLINK
-  cmd <- config::get("plink19_exe")
+  cmd <- "plink-1.90/plink"
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
-  #cmd <- "plink-1.90/plink"
-  #cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, " --bfile \"", plink_basename, "\" ")
   cmd = paste0(cmd, "--remove-fam \"", withdrawn_samples, 
                "\" ")
@@ -316,10 +310,11 @@ getPheWASResults <- function (score, covariates, pca, phenotypes, cores = 4) {
 ## - phenotypes_quant: dataset containing the phenotype (named trait) (first column SID, afterwards phenotype - if quantitative)
 ## - phenotypes_bin: dataset containing the phenotype (named trait) (first column SID, afterwards phenotype - if binary)
 ## - phenotypes_score: dataset containing the imaging trait data (first column SID, afterwards phenotype)
+## - imaging: vector with subject IDs belonging to the imaging set
 ##
 ## Output: A vector with columns  phenotype, estimate, lower and upper CI, p-value and the statistics for the specific PRS and the trait
 leave_one_out_cv <- function(snps_include, trait, imaging_trait, geno, covariates, pca, phenotypes_quant, phenotypes_bin, phenotypes_score) {
-  score <- computeGeneticScoreForSnps(snps_include, trait=imaging_trait, geno_data = geno, pheno_data=phenotypes_score)
+  score <- computeGeneticScoreForSnps(snps_include, trait=imaging_trait, geno_data = geno, pheno_data=phenotypes_score, imaging=imaging)
   score_nonmri <- score$Score %>% dplyr::filter(!(SID %in% imaging)) %>% dplyr::select(SID, Score)
   if (trait %in% names(phenotypes_bin)) {
     res <- getPheWASResults(score=score_nonmri, covariates=covariates, pca=pca, phenotypes=phenotypes_bin %>% dplyr::select(SID, trait))
