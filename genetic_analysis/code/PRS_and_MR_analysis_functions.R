@@ -26,7 +26,7 @@ filter_bgen_to_bed <- function (rs_file, outdir, bgen_file_for_chrom, sample_fil
                                                                     "\\.", "_")), outdir, fileext = ".bgen")
   #cmd = paste0("bgen/bgen-112018/bin/bgenix -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
   #             " > ", filtered_bgen)
-  cmd = "bgenix_exe"
+  cmd = config::get("bgenix_exe")
   cmd = paste0(cmd, " -g ", bgen_file_for_chrom, " -incl-rsids ", rs_file, 
                " > ", filtered_bgen)
   system(cmd)
@@ -35,7 +35,7 @@ filter_bgen_to_bed <- function (rs_file, outdir, bgen_file_for_chrom, sample_fil
   # export data as bed
   plinkfile = tempfile("plink", outdir)
   #cmd = paste0("Plink_2.00_20190716/plink2 --out \"", plinkfile, "\" ")
-  cmd <- "plink20_exe"
+  cmd <- config::get("plink20_exe")
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, "--bgen \"", filtered_bgen, "\" ")
   cmd = paste0(cmd, "--sample \"", sample_file, 
@@ -67,8 +67,10 @@ plink_clumping <- function (plink_basename, score_file, outdir, clump_p1, clump_
   plinkfile = tempfile("plink", outdir)
   
   ## run clumping with PLINK
-  cmd <- "plink19_exe"
+  cmd <- config::get("plink19_exe")
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
+  #cmd <- "plink-1.90/plink"
+  #cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, " --bfile \"", plink_basename, "\" ")
   cmd = paste0(cmd, "--remove-fam \"", withdrawn_samples, 
                "\" ")
@@ -109,7 +111,7 @@ plink_clumping <- function (plink_basename, score_file, outdir, clump_p1, clump_
 ##
 ## Output: a list (one entry per chromsome) containing data frames with selected SNPs and P-values
 
-gwas_clumping <- function(score_input, pval="P", rsid="SNP", chr="CHR", MAFfreq="MAF", score_threshold=10^-6, 
+gwas_clumping <- function(score_input, pval="P", rsid="SNP", chr="CHR", MAFfreq="MAF", score_threshold=5*10^-8, 
                           clump_kb=1000, clump_r2=0.1, 
                           snpset=NA, tmpdir, plink.tmpdir, minMaf=0, bgen_file_for_chrom, sample_file) {
   
@@ -178,7 +180,6 @@ gwas_clumping <- function(score_input, pval="P", rsid="SNP", chr="CHR", MAFfreq=
 
 computeGeneticScoreForSnps <- function(snps, trait, pheno_data, geno_data, 
                                                mean_impute_genotypes = T){
-  reg_type = match.arg(reg_type)
   
   score_formula = formula(paste0(trait, " ~ ", paste(snps, 
                                                      collapse = " + "), " + Age_Imaging + Sex + Array + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + 
@@ -217,6 +218,7 @@ getQuantPheWASResults <- function (score, covariates, pca, phenotypes,
   phenocov <- dplyr::left_join(phenotypes, covariates, by = c("SID"))
   data = dplyr::left_join(score, phenocov, by = "SID") %>%  dplyr::left_join(pca, by = "SID")
   result <- data.frame()
+  formula_covariates = "Age + Sex + Array + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10"
   for (var_name in names(phenotypes %>% dplyr::select(-SID))) {
     my_formula <- paste0("`", var_name, "` ~ ", score_name, 
                          " + ", formula_covariates)
@@ -266,7 +268,7 @@ getPheWASResults <- function (score, covariates, pca, phenotypes, cores = 4) {
     dplyr::inner_join(pca, by = "SID")
 
   data <- data %>% dplyr::inner_join(phenotypes, by = "SID")
-
+  formula_covariates = "Age + Sex + Array + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10"
   inner_phewas <- function(var_name, data, score_name,
                            formula_covariates = "Age + Sex + Array + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10") {
     
@@ -293,14 +295,150 @@ getPheWASResults <- function (score, covariates, pca, phenotypes, cores = 4) {
     tmp
   }
   
-  
-  
-  
+
   ret <- bind_rows(parallel::mclapply(as.list(names(phenotypes[2:ncol(phenotypes)])), 
                                         FUN = inner_phewas, data, score_name, formula_covariates, 
                                         mc.cores = cores))
   return(ret)
 }
+
+## Compute PheWAS for association of PRS with binary phenotypes using logistic regression
+##
+## Input:
+## - snps_included: RSIDs (or similar identifier) - should correspond to genetic data stored in 'geno'
+## - trait: name of trait of interest (association to PRS as called in 'phenotypes')
+## - imaging_trait: name of imaging trait (trait that PRS will be constructed for, need to be named in 'phenotypes_score')
+## - geno: tibble with genetic data (first column SID, afterwards SNP matrix)
+## - restrict_bin: list of binary traits (trait needs to be within restrict_quant or restrict_bin)
+## - restrict_quant: list of quantitative traits (trait needs to be within restrict_quant or restrict_bin)
+## - covariates: data set which contains covariates (e.g., age, sex) for PRS construction (first column SID, afterwards phenotypes)
+## - pca: dataset containing the PCA as used for the PheWAS (first column SID, afterwards phenotypes)
+## - phenotypes_quant: dataset containing the phenotype (named trait) (first column SID, afterwards phenotype - if quantitative)
+## - phenotypes_bin: dataset containing the phenotype (named trait) (first column SID, afterwards phenotype - if binary)
+## - phenotypes_score: dataset containing the imaging trait data (first column SID, afterwards phenotype)
+##
+## Output: A vector with columns  phenotype, estimate, lower and upper CI, p-value and the statistics for the specific PRS and the trait
+leave_one_out_cv <- function(snps_include, trait, imaging_trait, geno, covariates, pca, phenotypes_quant, phenotypes_bin, phenotypes_score) {
+  score <- computeGeneticScoreForSnps(snps_include, trait=imaging_trait, geno_data = geno, pheno_data=phenotypes_score)
+  score_nonmri <- score$Score %>% dplyr::filter(!(SID %in% imaging)) %>% dplyr::select(SID, Score)
+  if (trait %in% names(phenotypes_bin)) {
+    res <- getPheWASResults(score=score_nonmri, covariates=covariates, pca=pca, phenotypes=phenotypes_bin %>% dplyr::select(SID, trait))
+  }
+  if (trait %in% names(phenotypes_quant)) {
+    res <- getQuantPheWASResults(score=score_nonmri, phenotypes = phenotypes_quant  %>% dplyr::select(SID, trait), 
+                                 covariates=covariates, pca=pca, scale_phenotypes = TRUE)
+  }
+  return(res %>% dplyr::select(phenotype, estimate, conf.low, conf.high, p.value, statistic))
+}
+
+## Code to generate PRS forestplot as displayed in the paper
+##
+## Input: 
+## - figure_data: a data frame with the following entries:
+## * endpoint: names of phenotypes (only used for internal purposes, not displayed)
+## * estimate: point estimate of associations phenotype vs. PRS 
+## * conf.low: lower CI limit of associations phenotype vs. PRS 
+## * conf.high: upper CI limit of associations phenotype vs. PRS 
+## * prs_trait: name of diastolic function parameter:   "PDSR_ll", "PDSR_rr" or "LAVmax_i"
+## * description: read name for trait (will be displayed)
+## * p.adjusted: p-value- if >0.05: line will be displayed in grey
+## - title: title to display in figure
+## - xlim: limits on x-axis
+## - xlab: label on x-axis
+## - zero: position of vertical line
+## - vjust, ylim, topmargin: features for fine-tuning display of results; please see in the code
+plot_PRS <- function(figure_data, title, xlim, xlab, zero=1, vjust=0.5, ylim=0, topmargin=0.1) {
+  quantiles <- figure_data %>% dplyr::arrange(endpoint)  %>% rowid_to_column() %>% 
+    dplyr::mutate(pos = if_else((rowid %% 3) == 1, 1.5, 1)) %>% 
+    mutate(ci = sprintf("%.2f [%.2f,%.2f]",estimate,conf.low, conf.high)) %>% 
+    mutate(description_str = if_else(prs_trait!="PDSR_ll", "", as.character(description))) %>% 
+    mutate(ff=1)
+  quantiles <- quantiles %>% add_row(ci="Point estimate [95% CI]", pos=max(quantiles$pos+1), 
+                                     description_str="", prs_trait="PRS", conf.low=-NA, ff=1) 
+  quantiles$pos <- cumsum(quantiles$pos)
+  quantiles$prs_trait[which(quantiles$prs_trait=="PDSR_ll")] <- "PDSR[ll]"
+  quantiles$prs_trait[which(quantiles$prs_trait=="PDSR_rr")] <- "PDSR[rr]"
+  quantiles$prs_trait[which(quantiles$prs_trait=="LAVmax_i")] <- "LAVmax[i]"
+  
+  # for lines in Plot
+  seqline <- quantiles$pos[seq(4, length(quantiles$pos), by=3)]-1
+  seqline <- seqline[-length(seqline)]
+  colors <- c(rep(1:3, (length(unique(quantiles$description))-1)))
+  for (i in 1:(nrow(quantiles)-1)) {
+    if (quantiles$p.adjusted[i] >0.05) {
+      colors[i]  <- "nonsig"
+    }
+  }
+  man_col <- c("blueviolet", "deeppink4", "chartreuse4", "grey70")
+  if (!(1 %in% colors)) {
+    man_col <- c("deeppink4", "chartreuse4", "grey70")
+  }
+  if (!(2 %in% colors)) {
+    man_col <- c("blueviolet",  "chartreuse4", "grey70")
+  }
+  if (!(3 %in% colors)) {
+    man_col <- c("blueviolet", "deeppink4", "grey70")
+  }
+  
+  
+  lines <- ggplot(quantiles %>% dplyr::filter(!is.na(estimate)),
+                  aes(x=estimate, y=pos - 0.5, color=colors, xmin=conf.low, xmax=conf.high)) +
+    geom_pointrange(aes(col=colors))+
+    geom_vline(aes(fill=colors),xintercept =zero, linetype=2) +
+    geom_hline(aes(fill=colors),yintercept =seqline, linetype=3) +
+    geom_errorbar(aes(xmin=conf.low, xmax=conf.high,col=colors),width=0.5,cex=1)+
+    scale_y_continuous(limits=c(ylim-2,max(quantiles$pos)+1-ylim), expand=c(0.01,0.1))+
+    coord_cartesian(xlim = c(min(quantiles$conf.low), max(quantiles$conf.high)))+    cowplot::theme_cowplot()  +
+    theme(legend.position = "none",
+          plot.margin = unit(c(10,10,10,0), "pt"), 
+          axis.ticks.y = element_blank(),
+          axis.line.y = element_blank(),
+          axis.text.y = element_blank(),) +
+    xlab(xlab) + ylab("") +
+    scale_color_manual(values=man_col)
+  
+  table <- ggplot(quantiles  %>% dplyr::filter(!is.na(estimate)), aes(y=pos - 0.5, fontface=ff)) + 
+    geom_text(hjust=0, aes(x=0, label=description_str)) +
+    scale_fill_brewer(type = "seq", palette = "Greys") +   theme_void()+
+    theme(
+      panel.border = element_blank(),
+      axis.ticks = element_blank(),
+      axis.ticks.x = element_line(colour="white"),
+      axis.line = element_blank(),
+      axis.line.y = element_line(colour="white"),
+      axis.text.y = element_blank(),
+      axis.text.x = element_text(colour="white"),
+      legend.position = "none",
+      plot.margin = unit(c(10,0,10,0), "pt")) + 
+    xlab(" ") + ylab("") +
+    scale_y_continuous(limits=c(ylim-2,max(quantiles$pos)+1-ylim), expand=c(0.01,0.1))+coord_cartesian(xlim = c(0,4))
+  
+  # now add the title
+  if (!is.null(title)) {
+    plot_title <- cowplot::ggdraw() + 
+      cowplot::draw_label(title,
+                 fontface = 'bold',
+                 size = 12,
+                 x = 0,
+                 hjust = 0, vjust=vjust
+      ) +
+      theme(
+        # add margin on the left of the drawing canvas,
+        # so title is aligned with left edge of first plot
+        plot.margin = margin(0, 0, 0, 20)
+      )
+    
+    plot_row <- cowplot::plot_grid(table, lines, ncol=2, rel_widths = c(0.25,1), label_size = 0, align = "h", axis = "b")
+    cowplot::plot_grid(plot_title, plot_row, ncol = 1,
+              # rel_heights values control vertical title margins
+              rel_heights = c(topmargin, 1)
+    )
+  } else {
+    cowplot::plot_grid(table, lines, ncol=2, rel_widths = c(1.5,1), label_size = 0, align = "h", axis = "b")
+  }
+}
+
+
 
 ###################### Step 3: MR analysis ###################################################################
 
@@ -368,7 +506,7 @@ mr_analysis <- function(diastolic_gwas, nondiastolic_gwas, name_diastolic, name_
   presso1 <- data.frame(bx=mr_1$bx, bxse=mr_1$bxse, 
                         by=mr_1$by, byse=mr_1$byse, snps=mr_1$SNP)
   presso_tmp <-  try(MRPRESSO::mr_presso(BetaOutcome = "by", BetaExposure = "bx", SdOutcome = "byse", SdExposure = "bxse", 
-                                         OUTLIERtest = TRUE, DISTORTIONtest = TRUE, data = presso1, NbDistribution = 5000,  
+                                         OUTLIERtest = TRUE, DISTORTIONtest = TRUE, data = presso1, NbDistribution = 1000,  
                                          SignifThreshold = 0.05))
   if (class(presso_tmp)=="try-error") {
     presso_tmp <- data.frame(Method="Outlier-corrected", Estimate=NA, Sd=NA, "P-value"=-1)
