@@ -31,7 +31,6 @@ filter_bgen_to_bed <- function (rs_file, outdir, bgen_file_for_chrom, sample_fil
   
   # export data as bed
   cmd = paste0("Plink_2.00_20190716/plink2 --out \"", plinkfile, "\" ")
-  cmd <- config::get("plink20_exe")
   cmd = paste0(cmd, " --out \"", plinkfile, "\" ")
   cmd = paste0(cmd, "--bgen \"", filtered_bgen, "\" ")
   cmd = paste0(cmd, "--sample \"", sample_file, 
