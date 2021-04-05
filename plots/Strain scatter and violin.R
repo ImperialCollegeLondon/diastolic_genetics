@@ -19,7 +19,8 @@ library(forcats)
 
 # Load UK Biobank data
 
-plotdata <- fread("phenotypes_all.txt")
+## Input:
+## - plotdata: Data of all phenotypes/variables for the scatter and violin plot in Fig.2.
 
 # Extract PDSRll (s-1), PDSRrr (s-1), Age and Sex
 
@@ -95,7 +96,7 @@ PDSRll <- ggplot(unidata, aes(Sex, `PDSRll (s-1)`, group=Sex, fill=Sex)) +
         axis.text.y  = element_text(size=18),
         axis.line = element_line(size = 0.8, linetype = "solid"),
         axis.title.x  = element_text(size=18, vjust=0.3, face="bold"),
-        axis.title.y  = element_text(size=18, face = "bold", vjust=0.9, angle = 90),
+        axis.title.y  = element_text(size=18, face = "bold", vjust=0.9, angle = 90)
   )+
   labs(x="Sex", y = expression(bold(paste("PDSRll (s"^"-1",")")))) +
   stat_compare_means(aes(label = ..p.signif..), label.x = 1.5, size = 8
@@ -115,7 +116,7 @@ PDSRrr <- ggplot(unidata, aes(Sex, `PDSRrr (s-1)`, group=Sex, fill=Sex)) +
         axis.text.y  = element_text(size=18),
         axis.line = element_line(size = 0.8, linetype = "solid"),
         axis.title.x  = element_text(size=18, vjust=0.3, face="bold"),
-        axis.title.y  = element_text(size=18, face = "bold", vjust=0.9, angle = 90),
+        axis.title.y  = element_text(size=18, face = "bold", vjust=0.9, angle = 90)
   )+
   labs(x="Sex", y = expression(bold(paste("PDSRrr (s"^"-1",")")))) +
   stat_compare_means(aes(label = ..p.signif..), label.x = 1.5, size = 8

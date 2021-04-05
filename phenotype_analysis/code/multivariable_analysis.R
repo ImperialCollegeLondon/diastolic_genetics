@@ -5,8 +5,16 @@ install.packages("circlize")
 library(data.table)
 library(circlize)
 
+# A multiple linear regression analysis was used to explore the phenotype relationship between each imaging phenotype and 
+# cardiovascular risk factors, controlling the false discovery rate (FDR) with the Benjamini-Hochberg adjustment.
+
+## Input:
+## - multidata: Data with 31 imaging and 10 non-imaging phenotypes/variables for multiple linear regression analysis.
+## Output:
+## - multivar_data: Beta coefficient and corrected pvalues from the multiple linear regression analysis, containing 
+## "Imaging_group", "Nonimaging", "LogP", "Imaging", "Beta" and "AbsBeta" to be used in the bubble plot (Extended Data Fig.4a).
+
 # load data for multiple linear regression analysis
-multidata <- read.table("multiple_datatable.txt", header = TRUE)
 
 beta_ml<-matrix(0,ncol=31, nrow=10)
 mat_pv<-matrix(0,ncol=31, nrow=10)
@@ -64,6 +72,8 @@ colnames(multivar_data)<-c("Imaging_group","Nonimaging","LogP","Imaging","Beta",
 multivar_data$AbsBeta<-abs(multivar_data$AbsBeta)
 position_nonsig<-which(multivar_data$LogP<mt_Bh) # position of non significant
 multivar_data$Imaging_group[position_nonsig]<-"Not significant"
-write.table(multivar_data,"multivariable_analysis.txt",col.names = T, row.names = F)
+
+# Save
+# write.table(multivar_data,"multivariable_analysis.txt",col.names = T, row.names = F)
 
 # END

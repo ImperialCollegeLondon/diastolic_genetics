@@ -7,13 +7,20 @@ library(data.table)
 library(glmnet)
 library(berryFunctions)
 
-# load data for LASSO regression analysis
-multivar_data_train <- read.table("multivar_train_datatable.txt", header = TRUE) # load the training dataset
-multivar_data_test <- read.table("multivar_test_datatable.txt", header = TRUE) # load the test dataset
-position_final<-as.matrix(read.table("position_final.txt"))
-position_final<-as.numeric(position_final) # make numeric
-# Apply LASSO regression
+# We fitted L1-regularized logistic or linear regression (LASSO) that optimises the model coefficient of the linear regression,
+# where the λ parameter represents the strength of the regularization.
+# We adjusted λ by a ten-fold cross-validation (CV) method on a training set (68%, n=26,893) including all covariates, 
+# using the cv.glmnet function from the "glmnet" R package. The lambda.min parameter, which denotes the value that gives 
+# minimum mean cross-validated error, was extracted and used for prediction on the test set (32%, n=12,666).
 
+## Input:
+## - multivar_data_train: A training set (68%, n=26,893) including all covariates (110 non-imaging imputed phenotypes/variables and 31 imaging phenotype data).
+## - multivar_data_test: A test set (32%, n=26,893) including all covariates (110 non-imaging imputed phenotypes/variables and 31 imaging phenotype data).
+## - position_final: position of the variables selected in the data. In order to create the plot in Extended Data Fig.5b, "position_final" was not added in the code!
+## Output:
+## - multivar_lasso: Outcome of the LASSO regression analysis, containing the regression coefficients for all associations used in the Extended Data Fig.4b and circos plot in Fig.3.
+
+# Apply LASSO regression
 # cv.glmnet to train for the lambda parameter
 data.train<-as.matrix(multivar_data_train[,position_final])
 data.train<-na.omit(data.train)

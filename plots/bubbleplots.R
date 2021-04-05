@@ -13,13 +13,12 @@ library(forcats)
 library(tidyverse)
 library(hrbrthemes)
 
-# load beta coefficient and corrected pvalues from multiple linear regression analysis
-# from https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis/data
-multiple_analysis <- read.table("multiple_analysis.txt", header = TRUE)
-# first column contains the groups of imaging phenotypes, second column contains the non-imaging phenotypes,
-# third column contains the -log10(P), forth column contains the names of the Imaging phenotypes, 
-# fifth sixth column contains the beta coefficients and the absolute beta coefficients between the imaging 
-# and the non-imaging phenotypes.
+## Input:
+## - multiple_analysis: Beta coefficient and corrected pvalues from the multiple linear regression analysis.
+## First column contains the groups of imaging phenotypes, second column contains the non-imaging phenotypes,
+## third column contains the -log10(P), forth column contains the names of the Imaging phenotypes, 
+## fifth sixth column contains the beta coefficients and the absolute beta coefficients between the imaging 
+## and the non-imaging phenotypes.
 
 # Plot for Beta coefficient
 
