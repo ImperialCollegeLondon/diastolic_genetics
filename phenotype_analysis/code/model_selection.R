@@ -73,7 +73,5 @@ imcdiag(model_vif,method="VIF", vif=5) # 0 if collinearity is not detected by th
 position_final<-0
 for (iP in 1:ncol(pheno_vif)){position_final[iP]<-grep(colnames(pheno_vif)[iP],phenonames)} # position in the pheno of variables selected
 
-# Save
-# write.table(position_final, "position_final.txt")
 
 # END
