@@ -67,15 +67,6 @@ for (ib in 0:(ncol(multivar_lasso)-1)){
 colnames(multivar_lasso)<-colnames(beta_gl)
 rownames(multivar_lasso)<-colnames(multivar_lasso)
 # Save
-# write.table(multivar_lasso, "multivar_lasso.txt", row.names = T, col.names = T) # save beta coefficients
-
-# Plot 
-# col <- colorRampPalette(c("#4477AA", "#77AADD", "#FFFFFF", "#EE9988", "#BB4444"))
-# corrplot(as.matrix(multivar_lasso), is.corr = F, method = "color", col = col(200),
-#          number.digits = 3, number.cex = .55,
-#          tl.cex = .8,
-#          addCoef.col = "black",# Add coefficient of correlation
-#          tl.col = "black", tl.srt = 90,cl.cex=.8, cl.pos = "r"#, # Text label color and rotation
-# )
+# save beta coefficients
 
 # END
