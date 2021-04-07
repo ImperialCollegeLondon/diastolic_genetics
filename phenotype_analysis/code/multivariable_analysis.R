@@ -73,7 +73,5 @@ multivar_data$AbsBeta<-abs(multivar_data$AbsBeta)
 position_nonsig<-which(multivar_data$LogP<mt_Bh) # position of non significant
 multivar_data$Imaging_group[position_nonsig]<-"Not significant"
 
-# Save
-# write.table(multivar_data,"multivariable_analysis.txt",col.names = T, row.names = F)
 
 # END
