@@ -8,8 +8,9 @@ library(robustbase)
 
 # Calculates mean/median and SD/IQR for the radial strains. Then plots these with the ranges as a ribbon. 
 
-
-radial_strainrate <- read.csv("Radial_strain_39k_50phases.csv", header=T)
+## Input:
+## - radial_strainrate: Radial strain data in 50 phases for the scatter plot with density contours in Fig.1.
+# radial_strainrate <- read.csv("Radial_strain_39k_50phases.csv", header=T)
 
 
 me_SR<-colMeans(as.matrix(radial_strainrate), na.rm=T)

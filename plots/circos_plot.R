@@ -1,8 +1,9 @@
 
 install.packages("circlize")
 
-# load beta coefficient matrix from https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis/data
-multivar_lasso<-as.data.frame(fread("multivar_lasso.txt"))
+## Input:
+## - multivar_lasso: Beta coefficient matrix from the LASSO regression analysis.
+
 multivar_lasso<-multivar_lasso[,-1]
 rownames(multivar_lasso)<-colnames(multivar_lasso)
 multivar_lasso<-as.matrix(t(multivar_lasso)) # transpose matrx to show linkages by column for circos plotting

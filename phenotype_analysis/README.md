@@ -1,7 +1,7 @@
 # Cardiac Phenotype associations Pipeline
 
 ## Multivariable analysis
-Multivariable regression analysis was used to explore the phenotype relationship between each diastolic parameter and cardiovascular risk factors. 
+Multivariable regression analysis was used to explore the phenotype relationship between each imaging phenotype and cardiovascular risk factors. 
 
 ## Multivariable analysis using LASSO regression
 
