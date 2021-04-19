@@ -20,7 +20,7 @@ Automated peak detection alghortim to obtain the diastolic peak.
 Cardiac phenotype pipeline to investigate the relationships between the myocardial diastolic function parameters and the non-imaging clinical data.
 
 * [Genetic anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/genetic_analysis)  
-Genome-wide association study (GWAS) analysis for the derived diastolic function traits.
+Genome-wide association study (GWAS) analysis for the derived diastolic function traits. Contains also the causality assessment and polygenic risk score calculations.
 
 * [Plots](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/plots)  
 Scatter and box plots of diastolic function.
