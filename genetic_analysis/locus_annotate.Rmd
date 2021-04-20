@@ -1,0 +1,344 @@
+---
+params:
+  target_genes: [F11]
+  traits: [Ischemic_stroke, Myocardial infarction]
+  target_mechanisms: "Unknown"
+  known_variants: "known_variants.csv"
+  author: Aidan MacNamara <aidan.macnamara@bayer.com>
+  report_type: "Gene"
+title: "Bullseye Report for `r params$target_genes`"
+author: "`r params$author`"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output:
+  html_notebook:
+    code_folding: hide
+    highlight: haddock
+    theme: journal
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+    toc_float: yes
+    fig_height: 5
+    fig_width: 8
+    css: /gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/inst/extdata/styles.css
+  html_document:
+    highlight: haddock
+    theme: journal
+    toc: true
+    toc_depth: 4
+    number_sections: yes
+    fig_height: 5
+    fig_width: 8
+    css: /gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/inst/extdata/styles.css
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 4
+    number_sections: yes
+    fig_height: 5
+    fig_width: 8
+csl: vancouver.csl
+# bibliography: x.bib
+---
+
+
+```{r knitr_options, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60), tidy=TRUE)
+# knitr::opts_chunk$set(eval = FALSE)
+
+target_genes = params$target_genes
+traits = params$traits
+target_mechanisms = params$target_mechanisms
+
+```
+
+This is an evaluation of the genetic evidence for `r target_genes`, against the following traits:
+
+```{r, echo=FALSE}
+knitr::kable(data.frame(Traits=traits))
+```
+
+The evaluation considers two aspects:
+
+* The target and the pathway
+* The locus/loci more broadly, focusing on the disease selection provided.
+
+The workflow is separated by these criteria after Step 2.
+
+The evaluation should include two aspects: genomic evaluation of A) the target and pathway, and B) the locus/loci more broadly (with specific diseases in mind). The workflow is separated by these criteria after Step 2. 
+
+# Introduction
+
+![](/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/vignettes/images/image_1.png)
+
+# Setup
+
+```{r setup, message=FALSE, warning=FALSE, eval=FALSE}
+
+require(tidyverse)
+require(biomaRt)
+require(readxl)
+require(org.Hs.eg.db)
+require(httr)
+require(GenomicRanges)
+require(rtracklayer)
+require(devtools)
+require(readxl)
+require(qvalue)
+require(epiChoose)
+require(ggrepel)
+
+load_all("~/links/bullseye/")
+
+Sys.setenv(R_CONFIG_ACTIVE="imaging")
+require(UKBRlib)
+
+options(stringsAsFactors=FALSE)
+uniprot = Rkeys(org.Hs.egUNIPROT)
+mapping_prot = select(org.Hs.eg.db, uniprot, "ENTREZID", "UNIPROT")
+# mapping = id_mapping()
+load("/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/r_data/mapping.RData")
+load("/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/r_data/t_list.RData")
+win = 1e6 # search window
+v2g_score_cutoff = 0.3 # check thiss
+
+```
+
+# Workflow
+
+## Step 1: Hypothesis
+
+The hypothesized causal relationship:
+
+![](/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/vignettes/images/causal_chain.png)
+
+Where "Target" is `r target_genes`, "Mechanism" is `r target_mechanisms`, and "Disease" is `r traits`.
+
+## Step 2: Gene Expansion
+
+* Expand the gene annotation for `r target_genes` to include neighbouring genes in the locus
+* For our target gene, `r target_genes`, identify other genes with which the target gene interacts (e.g. ligands, pathway neighbors etc. 
+* Leave first neighbors from networks and pathways, unlikely to be targets (http://biorxiv.org/lookup/doi/10.1101/2020.04.22.051144)
+
+```{r gene_annotation, eval=TRUE, cache=TRUE, message=FALSE, warning=FALSE, echo=FALSE}
+
+target_genes = c(
+  "BAG3",
+  "FHOD3",
+  "PLN",
+  "SYT10",
+  "EFEMP1",
+  "NPR3",
+  "GJA1",
+  "PHF14",
+  "SP1"
+)
+
+# interactors = get_interactors(target_genes)
+
+my_genes = data.frame()
+
+for(i in 1:length(target_genes)) {
+  t_ix = which(t_list$external_gene_name==target_genes[i])[1]
+  genes_in_locus = t_list %>% dplyr::filter(chromosome_name==t_list$chromosome_name[t_ix], exon_chrom_start >= t_list$exon_chrom_start[t_ix] - win, exon_chrom_end <= t_list$exon_chrom_end[t_ix] + win) %>% dplyr::select(external_gene_name) %>% distinct() %>% unlist() %>% as.character()
+  my_genes = rbind(my_genes, data.frame(gene=genes_in_locus, locus=target_genes[i]))
+}
+
+my_genes$type = "locus"
+my_genes$type[my_genes$gene %in% target_genes] = "target"
+my_genes$entrez = mapping$entrezgene_id[match(my_genes$gene, mapping$external_gene_name)]
+my_genes$ensembl = mapping$ensembl_gene_id[match(my_genes$gene, mapping$external_gene_name)]
+my_genes$chrom = t_list$chromosome_name[match(my_genes$gene, t_list$external_gene_name)]
+mapping_prot$ENTREZID = as.numeric(mapping_prot$ENTREZID)
+my_genes = left_join(my_genes, mapping_prot, by=c("entrez"="ENTREZID"))
+my_genes = my_genes[!is.na(my_genes$entrez),]
+
+my_genes_ensembl = my_genes %>% group_by(gene) %>% summarise(ensembl=ensembl[1], chrom=chrom[1], locus=locus[1])
+
+t_list_coords = t_list[t_list$ensembl_gene_id %in% my_genes_ensembl$ensembl,] %>% group_by(external_gene_name) %>% summarise(min=min(exon_chrom_start), max=max(exon_chrom_end))
+
+region_38 = GenomicRanges::GRanges(
+  seqnames = my_genes_ensembl$chrom,
+  ranges = IRanges::IRanges(start=t_list_coords$min[match(my_genes_ensembl$gene, t_list_coords$external_gene_name)]-win, end=t_list_coords$max[match(my_genes_ensembl$gene, t_list_coords$external_gene_name)]+win),
+  strand = "*"
+)
+region_38$locus = my_genes_ensembl$ensembl
+
+region_37 = lift_over(region_38, "38_to_37")
+region_37 = makeGRangesFromDataFrame(region_37)
+knitr::kable(my_genes, caption="Locus Genes with Annotation")
+
+loci = unique(my_genes_ensembl$locus)
+
+for(i in 1:length(loci)) {
+  
+  my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+  chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+  chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+  
+  t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+  t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+  t_list_filtered$strand = "*"
+  
+  gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+  gene_track$model = "exon"
+  p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(10, angle_45=FALSE)
+  print(p_locus)
+}
+
+```
+
+# Target-Based Approach
+
+## Step 3: Collect variants with a plausible impact on the target(s) in humans
+
+For any given gene, there are vast numbers of "associated" (by distance) genetic variants that can be linked to the target function/biology (or broader pathway). The challenge is prioritizing which ones also exert a measurable effect on the target/pathway **in humans**, and how to quantify their effects on the pathway in vivo (to enable combining evidence across different variants). 
+
+For example, a variant may be a strong eQTL (i.e. very low p-value in GTEx), but it may be that the biological activity of the resulting target protein is predominantly influenced by other processes than transcription (e.g. protein synthesis, or degradation). In this case, the fact that the variant is an eQTL does not mean much because we do not know if it exerts any meaningful effect on the target in humans in vivo. If, however, we have a marker of the downstream activity of this pathway (this could be the circulating protein, or a downstream physiological marker / pharmacodynamic marker), we can test the association of the variant with this marker in humans, and thereby determine and quantify the in vivo effects of the variant.
+
+The initial set of variants need to satisfy at least one of the following conditions:
+
+1. It is a predicted loss-of-function variant for one of the genes of interest. 
+2. It is a predicted damaging variant in the protein product (5/5) (1 and 2 would not need an intermediate trait). 
+3. It is a missense variant in the gene of interest. 
+4. It is a pQTL for the protein product of the gene of interest. 
+5. It is an eQTL for the gene of interest. 
+6. It is a regulatory variant for the gene of interest (enhancer, promoter, or interaction demonstrated through e.g. HiC). 
+7. It is a variant with functional characterization relating to the target of interest, reported in the literature (e.g. a mutational screen of an enzyme showing that a certain amino acid substitution alters IC50 values for the enzyme reaction).
+8. It is a combination of the above ...
+
+## Step 4: Collect GWAS signals from the hypothesized linked phenotypes
+
+```{r traits, eval=FALSE}
+
+# *** traits need to be mapped to ieu, gwas catalog, etc. ***
+
+traits = c(
+  "radial_PDSR",
+  "long_PDSR",
+  "LAV.max_log",
+  "pulse_rate_adj",
+  "sbp_adj"
+)
+
+# binary_traits = readProcessedBinaryTraits(input_subset="all", coreOnly=FALSE, renaming=TRUE)
+# quant_traits = readProcessedQuantTraits()
+# View(data.frame(binary=names(binary_traits)))
+# View(data.frame(quant=names(quant_traits)))
+avail = str_replace(list.files("~/links/UK_Biobank/GWAS_summary_stats/"), "GWAS_", "")
+
+traits_annot = data.frame(
+  name = traits,
+  type = c("linear")
+)
+traits_annot$ready = traits_annot$name %in% avail
+
+gene_traits = get_gwas_ukb(my_region=region_37, traits=traits_annot)
+
+my_snps = data.frame(
+  chr = lead_snps$CHR,
+  pos = c(119670121,36643603,118359211,33462906,55879793,32830415,121871446,11185589,53374856),
+  rs_id = lead_snps$SNP,
+  gene = target_genes
+)
+
+target_ix = match(target_genes, my_genes_ensembl$gene)
+
+```
+
+
+```{r}
+
+# check to make sure this is complete
+# include microarray studies as well
+
+rnaseq_study_names = c(
+  "GTEx_V8", "Alasoo_2018","BLUEPRINT","BrainSeq","GENCORD","GEUVADIS","HipSci","Lepik_2017",
+  "Nedelec_2016", "Quach_2016","Schwartzentruber_2018","TwinsUK","van_de_Bunt_2015"
+)
+
+# gene_ebi_eqtl_top will return the p-values for any associations with the provided variant
+
+gene_ebi_eqtl_top = vector("list", length(unique(my_snps$rs_id)))
+names(gene_ebi_eqtl_top) = unique(my_snps$rs_id)
+
+for(i in 1:length(gene_ebi_eqtl_top)) {
+  gene_ebi_eqtl_top[[i]] = get_eqtl_ebi_top_hits(study_ids=rnaseq_study_names, variant_id=my_snps$rs_id[i], p_upper=0.001)
+}
+
+gene_ebi_eqtl_top = bind_rows(gene_ebi_eqtl_top) %>% distinct()
+
+# filter down to the target genes
+
+gene_ebi_eqtl_top = gene_ebi_eqtl_top %>% filter(molecular_trait_id %in% c(my_genes_ensembl$ensembl[target_ix],"ENSG00000197771","ENSG00000134779","ENSG00000111860","ENSG00000196376","ENSG00000273853","ENSG00000139133","ENSG00000259937","ENSG00000248279","ENSG00000025156","ENSG00000111897","ENSG00000189043","ENSG00000182544","ENSG00000123349"))
+
+gene_ebi_eqtl_top_summ = gene_ebi_eqtl_top %>% group_by(study_id, qtl_group, gene_id) %>% dplyr::filter(p==min(p)) %>% summarise(molecular_trait_id=molecular_trait_id, p=p, tissue=tissue, quant_method=quant_method, rs_id=rs_id, pos=pos, chr=chr) %>% arrange(p) %>% mutate(context=paste(study_id, qtl_group, sep="_"))
+
+gene_ebi_eqtl_top_summ$context = factor(gene_ebi_eqtl_top_summ$context, levels=rev(unique(gene_ebi_eqtl_top_summ$context)))
+gene_ebi_eqtl_top_summ$tissue = factor(gene_ebi_eqtl_top_summ$tissue, levels=unique(gene_ebi_eqtl_top_summ$tissue))
+
+plot_rsids = unique(gene_ebi_eqtl_top_summ$rs_id)
+v_shapes = (0:(length(plot_rsids)-1)) %>% "names<-"(plot_rsids)
+
+base_plot = ggplot(gene_ebi_eqtl_top_summ, aes(x=-log10(p), y=context, shape=rs_id, color=molecular_trait_id))
+final_plot = base_plot + geom_point(size=2) + theme_bw() + xlab(expression(paste("-",log[10], " p-value"))) + ylab("Study and Condition") + labs(color="Cell Type", shape="Quantification method") + theme_thesis(20) + scale_shape_manual(values=v_shapes)
+final_plot
+
+# get the summary stats for these loci
+
+qtl_ix = as.list(1:dim(gene_ebi_eqtl_top_summ)[1])
+gene_ebi_eqtl_locus = lapply(qtl_ix, function(x) get_eqtl_ebi(gene_ebi_eqtl_top_summ[x,]))
+names(gene_ebi_eqtl_locus) = paste(gene_ebi_eqtl_top_summ$study_id, gene_ebi_eqtl_top_summ$qtl_group, sep="_")
+gene_ebi_eqtl_locus = bind_rows(gene_ebi_eqtl_locus, .id="trait")
+
+gene_eqtlgen = get_eqtl_gen(gene_id=my_genes_ensembl$ensembl[target_ix], chain_loc="~/links/bullseye/r_data/")
+
+```
+
+## Step 5: Collate and visualise (confirm SNPs/colocalisation)
+
+```{r combine, eval=FALSE}
+
+gene_all = dplyr::bind_rows(gene_traits, gene_eqtlgen, gene_ebi_eqtl_locus) %>% dplyr::select(gene_id, rs_id, chr, pos, ref, alt, beta, p, source, type, tissue, trait)
+gene_all$gene = mapping$external_gene_name[match(gene_all$gene_id, mapping$ensembl_gene_id)]
+gene_all$gene[is.na(gene_all$gene)] = "-"
+gene_all$tissue[grepl("pQTL", gene_all$type)] = "Blood"
+gene_all$trait[is.na(gene_all$trait)] = "None"
+gene_all$p[is.na(gene_all$p)] = 1
+gene_all$label_snps = NA
+gene_all$label_snps[which(gene_all$rs_id %in% my_snps$rs_id)] = gene_all$rs_id[which(gene_all$rs_id %in% my_snps$rs_id)]
+gene_all
+
+my_snps$gene_id = mapping$ensembl_gene_id[match(my_snps$gene, mapping$external_gene_name)]
+
+```
+
+
+```{r}
+
+loci = unique(my_genes_ensembl$locus)
+i=9
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(10, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+print(p_locus)
+
+p_1 = gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(10) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+# pdf(file=paste0("figures/locus_", loci[i], "_p_1.pdf"), height=120, width=14)
+print(ggbio::tracks(p_1, p_locus, heights=c(4,1)))
+# dev.off()
+
+```
+

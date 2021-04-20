@@ -309,10 +309,10 @@ stats = stats %>% dplyr::select(SNP, CHR, BP, P_BOLT_LMM_INF)
 stats = dplyr::rename(stats, p_value=P_BOLT_LMM_INF, chr=CHR, pos=BP)
 stats$phenotype = NA
 stats$gene = NA
-stats$phenotype[match(c("rs11535974"), stats$SNP)] = "Longitudinal PDSR"
+stats$phenotype[match(c("rs11535974"), stats$SNP)] = ""
 stats$gene[match(c("rs11535974"), stats$SNP)] = c("AC023158.1")
 png(filename="data/manhattan_full_long_apr_covar.png", width=1200, height=350)
-manh_plot(stats, pcut_label=1e-5)
+manh_plot(stats, pcut_label=1e-3)
 dev.off()
 
 
@@ -543,10 +543,10 @@ rownames(to_plot) = res$variant
 # cutoff_distance = 0  
 # cols = make_colors(c("blue","white","white","red"), cutoff_distance/max(to_plot), 100)
 
-p_annot = matrix(paste0("p = ", unlist(res[,c(2,5,8)]), ", beta = ", -unlist(res[,c(3,6,9)])), nrow=8, byrow=FALSE)
+p_annot = matrix(paste0("p = ", unlist(res[,c(2,5,8)]), ", beta = ", -unlist(res[,c(3,6,9)])), nrow=9, byrow=FALSE)
 colnames(p_annot) = colnames(to_plot)
 
-genes = c("BAG3","FHOD3","PLN","AC023158.1","EFEMP1","NPR3","GJA1","PHF14")
+genes = c("BAG3","FHOD3","PLN","AC023158.1","EFEMP1","NPR3","GJA1","PHF14","SP1")
 rownames(to_plot) = paste(rownames(to_plot), genes, sep=", ")
 rownames(p_annot) = rownames(to_plot)
 
