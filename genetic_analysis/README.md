@@ -1,13 +1,13 @@
 # Genetic analysis for diastolic function parameters
 
-In this folder, we collect for replicating the genetic part of the diastolic function paper. Note that the data loading steps, which highly depend on the set-up of UK Biobank data infrastructure are not included since this will be different for each institute. However, we describe the required input for each function.
+In this folder, we collect code for replicating the genetic part of the diastolic function paper. Note that the data loading steps, which highly depend on the set-up of UK Biobank data infrastructure are not included since this will be different for each institute. However, we describe the required input for each function.
 
 ## Run GWAS
 
 We have run GWAS for quantitative endpoints (e.g., the diastolic function parameters) with BOLT-LMM and for binary endpoints (e.g. heart failure case/control analysis) with PLINK. The command line statements are summarized in run_gwas.txt.
 
 ## Mapping of hits to causal genes and annotation
-[Aidan to add]
+The data gathering for the variant to gene mapping is summarised in locus_annotate.Rmd
 
 ## Causes and consequences of diastolic function traits
 
