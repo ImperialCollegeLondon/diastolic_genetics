@@ -9,6 +9,9 @@ We have run GWAS for quantitative endpoints (e.g., the diastolic function parame
 ## Mapping of hits to causal genes and annotation
 The data gathering for the variant to gene mapping is summarised in locus_annotate.Rmd
 
+get_hits.sh obtains the significant variants from the summary stats
+heritability.sh runs the heritability calculation
+
 ## Causes and consequences of diastolic function traits
 
 We first screen for associations by conduction a PheWAS for PRS of diastolic function trait. Afterwards, we run a MR analyses. Code for both assessments are summarized in PRS_and_MR_analysis_functions.R (required functions) and PRS_and_MR_analysis_run_analysis.R (execute analysis). 
