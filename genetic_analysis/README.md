@@ -4,7 +4,7 @@ In this folder, we collect code for replicating the genetic part of the diastoli
 
 ## Run GWAS
 
-We have run GWAS for quantitative endpoints (e.g., the diastolic function parameters) with BOLT-LMM and for binary endpoints (e.g. heart failure case/control analysis) with PLINK. The command line statements are summarized in run_gwas.txt.
+We have run GWAS for quantitative endpoints (e.g., the diastolic function parameters) with BOLT-LMM and for binary endpoints (e.g. heart failure case/control analysis) with PLINK. The command line statements are summarized in run_gwas.txt. Additional post-GWAS processing (retrieval of lead variants, Manhattan plots, etc.) is summarised in annotation_1.R
 
 ## Mapping of hits to causal genes and annotation
 The data gathering for the variant to gene mapping is summarised in locus_annotate.Rmd

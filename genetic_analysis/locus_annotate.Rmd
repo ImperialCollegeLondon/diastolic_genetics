@@ -1,46 +1,3 @@
----
-params:
-  target_genes: [F11]
-  traits: [Ischemic_stroke, Myocardial infarction]
-  target_mechanisms: "Unknown"
-  known_variants: "known_variants.csv"
-  author: Aidan MacNamara <aidan.macnamara@bayer.com>
-  report_type: "Gene"
-title: "Bullseye Report for `r params$target_genes`"
-author: "`r params$author`"
-date: '`r format(Sys.time(), "%d %B, %Y")`'
-output:
-  html_notebook:
-    code_folding: hide
-    highlight: haddock
-    theme: journal
-    toc: yes
-    toc_depth: 4
-    number_sections: yes
-    toc_float: yes
-    fig_height: 5
-    fig_width: 8
-    css: /gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/inst/extdata/styles.css
-  html_document:
-    highlight: haddock
-    theme: journal
-    toc: true
-    toc_depth: 4
-    number_sections: yes
-    fig_height: 5
-    fig_width: 8
-    css: /gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/inst/extdata/styles.css
-  pdf_document:
-    latex_engine: xelatex
-    toc: true
-    toc_depth: 4
-    number_sections: yes
-    fig_height: 5
-    fig_width: 8
-csl: vancouver.csl
-# bibliography: x.bib
----
-
 
 ```{r knitr_options, include=FALSE}
 
@@ -54,24 +11,6 @@ target_mechanisms = params$target_mechanisms
 
 ```
 
-This is an evaluation of the genetic evidence for `r target_genes`, against the following traits:
-
-```{r, echo=FALSE}
-knitr::kable(data.frame(Traits=traits))
-```
-
-The evaluation considers two aspects:
-
-* The target and the pathway
-* The locus/loci more broadly, focusing on the disease selection provided.
-
-The workflow is separated by these criteria after Step 2.
-
-The evaluation should include two aspects: genomic evaluation of A) the target and pathway, and B) the locus/loci more broadly (with specific diseases in mind). The workflow is separated by these criteria after Step 2. 
-
-# Introduction
-
-![](/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/vignettes/images/image_1.png)
 
 # Setup
 
@@ -90,17 +29,9 @@ require(qvalue)
 require(epiChoose)
 require(ggrepel)
 
-load_all("~/links/bullseye/")
-
-Sys.setenv(R_CONFIG_ACTIVE="imaging")
-require(UKBRlib)
-
 options(stringsAsFactors=FALSE)
 uniprot = Rkeys(org.Hs.egUNIPROT)
 mapping_prot = select(org.Hs.eg.db, uniprot, "ENTREZID", "UNIPROT")
-# mapping = id_mapping()
-load("/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/r_data/mapping.RData")
-load("/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/r_data/t_list.RData")
 win = 1e6 # search window
 v2g_score_cutoff = 0.3 # check thiss
 
@@ -108,19 +39,9 @@ v2g_score_cutoff = 0.3 # check thiss
 
 # Workflow
 
-## Step 1: Hypothesis
+## Step 1: Gene Expansion
 
-The hypothesized causal relationship:
-
-![](/gpfs01/bhcbio/projects/research_studies/20200428_BULLSEYE/Programs/bullseye/vignettes/images/causal_chain.png)
-
-Where "Target" is `r target_genes`, "Mechanism" is `r target_mechanisms`, and "Disease" is `r traits`.
-
-## Step 2: Gene Expansion
-
-* Expand the gene annotation for `r target_genes` to include neighbouring genes in the locus
-* For our target gene, `r target_genes`, identify other genes with which the target gene interacts (e.g. ligands, pathway neighbors etc. 
-* Leave first neighbors from networks and pathways, unlikely to be targets (http://biorxiv.org/lookup/doi/10.1101/2020.04.22.051144)
+* Expand the gene annotation to include neighbouring genes in the locus
 
 ```{r gene_annotation, eval=TRUE, cache=TRUE, message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -192,50 +113,21 @@ for(i in 1:length(loci)) {
 
 # Target-Based Approach
 
-## Step 3: Collect variants with a plausible impact on the target(s) in humans
-
-For any given gene, there are vast numbers of "associated" (by distance) genetic variants that can be linked to the target function/biology (or broader pathway). The challenge is prioritizing which ones also exert a measurable effect on the target/pathway **in humans**, and how to quantify their effects on the pathway in vivo (to enable combining evidence across different variants). 
-
-For example, a variant may be a strong eQTL (i.e. very low p-value in GTEx), but it may be that the biological activity of the resulting target protein is predominantly influenced by other processes than transcription (e.g. protein synthesis, or degradation). In this case, the fact that the variant is an eQTL does not mean much because we do not know if it exerts any meaningful effect on the target in humans in vivo. If, however, we have a marker of the downstream activity of this pathway (this could be the circulating protein, or a downstream physiological marker / pharmacodynamic marker), we can test the association of the variant with this marker in humans, and thereby determine and quantify the in vivo effects of the variant.
-
-The initial set of variants need to satisfy at least one of the following conditions:
-
-1. It is a predicted loss-of-function variant for one of the genes of interest. 
-2. It is a predicted damaging variant in the protein product (5/5) (1 and 2 would not need an intermediate trait). 
-3. It is a missense variant in the gene of interest. 
-4. It is a pQTL for the protein product of the gene of interest. 
-5. It is an eQTL for the gene of interest. 
-6. It is a regulatory variant for the gene of interest (enhancer, promoter, or interaction demonstrated through e.g. HiC). 
-7. It is a variant with functional characterization relating to the target of interest, reported in the literature (e.g. a mutational screen of an enzyme showing that a certain amino acid substitution alters IC50 values for the enzyme reaction).
-8. It is a combination of the above ...
-
-## Step 4: Collect GWAS signals from the hypothesized linked phenotypes
+## Step 2: Collect summary stats
 
 ```{r traits, eval=FALSE}
-
-# *** traits need to be mapped to ieu, gwas catalog, etc. ***
 
 traits = c(
   "radial_PDSR",
   "long_PDSR",
-  "LAV.max_log",
-  "pulse_rate_adj",
-  "sbp_adj"
+  "LAV"
 )
-
-# binary_traits = readProcessedBinaryTraits(input_subset="all", coreOnly=FALSE, renaming=TRUE)
-# quant_traits = readProcessedQuantTraits()
-# View(data.frame(binary=names(binary_traits)))
-# View(data.frame(quant=names(quant_traits)))
-avail = str_replace(list.files("~/links/UK_Biobank/GWAS_summary_stats/"), "GWAS_", "")
 
 traits_annot = data.frame(
-  name = traits,
-  type = c("linear")
+  name = traits
 )
-traits_annot$ready = traits_annot$name %in% avail
 
-gene_traits = get_gwas_ukb(my_region=region_37, traits=traits_annot)
+gene_traits = get_gwas_bolt(my_region=region_37, traits=traits_annot)
 
 my_snps = data.frame(
   chr = lead_snps$CHR,
@@ -248,6 +140,7 @@ target_ix = match(target_genes, my_genes_ensembl$gene)
 
 ```
 
+## Step 3: Collect eQTL data
 
 ```{r}
 
@@ -297,7 +190,7 @@ gene_eqtlgen = get_eqtl_gen(gene_id=my_genes_ensembl$ensembl[target_ix], chain_l
 
 ```
 
-## Step 5: Collate and visualise (confirm SNPs/colocalisation)
+## Step 4: Collate and visualise (confirm SNPs/colocalisation)
 
 ```{r combine, eval=FALSE}
 
@@ -314,12 +207,12 @@ gene_all
 my_snps$gene_id = mapping$ensembl_gene_id[match(my_snps$gene, mapping$external_gene_name)]
 
 ```
-
+## Step 5: Plotting the loci signals
 
 ```{r}
 
 loci = unique(my_genes_ensembl$locus)
-i=9
+i=1
 
 my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
 chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
@@ -334,11 +227,197 @@ gene_track$model = "exon"
 p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(10, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
 print(p_locus)
 
-p_1 = gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(10) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+gene_plot  = gene_all %>% filter(trait=="radial_PDSR" | trait=="Quach_2016_monocyte_IAV" | trait=="GTEx_V8_Artery_Aorta")
+p_1 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
 
-# pdf(file=paste0("figures/locus_", loci[i], "_p_1.pdf"), height=120, width=14)
-print(ggbio::tracks(p_1, p_locus, heights=c(4,1)))
-# dev.off()
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_1, p_locus, heights=c(4,2)))
+dev.off()
+
+i=2
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="LAV" | trait=="GTEx_V8_Nerve_Tibial")
+p_2 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_2, p_locus, heights=c(4,2)))
+dev.off()
+
+i=3
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="radial_PDSR" | trait=="long_PDSR" | trait=="GTEx_V8_Nerve_Tibial")
+p_3 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_3, p_locus, heights=c(4,2)))
+dev.off()
+
+i=4
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="long_PDSR" | trait=="GTEx_V8_Artery_Aorta")
+p_4 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_4, p_locus, heights=c(4,2)))
+dev.off()
+
+i=5
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="radial_PDSR" | trait=="eQTLGen_blood"| trait=="GTEx_V8_Muscle_Skeletal")
+p_5 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_5, p_locus, heights=c(4,2)))
+dev.off()
+
+i=6
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="radial_PDSR" | trait=="long_PDSR"| trait=="GTEx_V8_Heart_Atrial_Appendage"| trait=="GTEx_V8_Artery_Aorta")
+p_6 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_6, p_locus, heights=c(4,2)))
+dev.off()
+
+
+i=7
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="LAV" | trait=="GTEx_V8_Thyroid")
+p_7 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_7, p_locus, heights=c(4,2)))
+dev.off()
+
+i=8
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="radial_PDSR" | trait=="GTEx_V8_Nerve_Tibial")
+p_8 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_8, p_locus, heights=c(4,2)))
+dev.off()
+
+i=9
+
+my_chrom = my_genes_ensembl$chrom[my_genes_ensembl$locus==loci[i]][1]
+chrom_start = min(start(region_38[which(my_genes_ensembl$locus==loci[i])]))
+chrom_end = max(end(region_38[which(my_genes_ensembl$locus==loci[i])]))
+
+t_list_filtered = dplyr::filter(t_list, external_gene_name %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]])
+t_list_filtered$ensembl_transcript_id = t_list_filtered$external_gene_name
+t_list_filtered$strand = "*"
+
+gene_track = makeGRangesFromDataFrame(t_list_filtered, keep.extra.columns=TRUE)
+gene_track$model = "exon"
+p_locus = ggbio::autoplot(gene_track, aes(tgene_trackpe=model, group=ensembl_transcript_id)) + theme_thesis(15, angle_45=FALSE) + geom_vline(xintercept=my_snps$pos[my_snps$gene %in% my_genes_ensembl$gene[my_genes_ensembl$locus==loci[i]]], lty=2, color="grey")
+
+gene_all %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free") + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+gene_plot  = gene_all %>% filter(trait=="long_PDSR" | trait=="GTEx_V8_Artery_Tibial")
+p_9 = gene_plot %>% filter(chr==my_chrom, pos >= chrom_start, pos <= chrom_end) %>% ggplot(aes(x=pos, y=-log(p, base=10), color=gene, label=label_snps)) + geom_point(alpha=0.5, size=1) + theme_thesis(20) + ylab("-log10(P)") + xlab("") + geom_hline(yintercept = -log(5e-8, base=10), lty=2, alpha=0.5, color="red") + coord_cartesian(xlim=c(chrom_start, chrom_end)) + facet_wrap(~trait+source+tissue, scales="free", ncol=1) + theme(legend.position="top") + geom_vline(xintercept=my_snps$pos[my_snps$gene==loci[i]], lty=2, color="grey") # + geom_text_repel()
+
+png(filename=paste0("/gpfs01/home/glkwj/projects/diastolic_genetics_local/genetic_analysis/figures/locus_", loci[i], "_p_1.png"), width=800, height=1200)
+print(ggbio::tracks(p_9, p_locus, heights=c(4,2)))
+dev.off()
 
 ```
 
