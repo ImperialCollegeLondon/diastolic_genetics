@@ -6,6 +6,7 @@
 ## ESTIMATE: point estimate of effect size
 ## SE: standard error
 ## P: P-value of BOLT-LMM
+## For all GWAS files, we assume that filtering for HWE has already taken place beforehand.
 
 ## In the same way: long PDSR is stored in a data frame called longTab and LAVmax (indexed to BSA) is stored
 ## in a data frame called lavTab.
@@ -26,7 +27,7 @@ library(data.table)
 ## obtain list of SNPs via clumping
 radial <- gwas_clumping(score_input=radialTab, score_threshold=10^-6, clump_r2=0.1, tmpdir=tmpdir, 
                         plink.tmpdir=plink.tmpdir, snpset=NA,
-                        minMaf=0.01, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file)
+                        minMaf=0.005, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file)
 ## remove list structure and exclude empty entries (are generated if no SNP is selected for a specific CHR)
 radial <- unlist(radial)
 radialSNPs <- radial[which(radial!="")]
@@ -36,7 +37,7 @@ radialSNPs <- radial[which(radial!="")]
 ## obtain list of SNPs via clumping
 long <- gwas_clumping(score_input=longTab, score_threshold=10^-6, clump_r2=0.1, tmpdir=tmpdir, 
                       plink.tmpdir=plink.tmpdir, snpset=NA,
-                      minMaf=0.01, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file)
+                      minMaf=0.005, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file)
 ## remove list structure and exclude empty entries (are generated if no SNP is selected for a specific CHR)
 long <- unlist(long)
 longSNPs <- long[which(long!="")]
@@ -46,7 +47,7 @@ longSNPs <- long[which(long!="")]
 ## obtain list of SNPs via clumping
 lav <- gwas_clumping(score_input=lavTab, score_threshold=10^-6, clump_r2=0.1, tmpdir=tmpdir, 
                      plink.tmpdir=plink.tmpdir, snpset=NA,
-                     minMaf=0.01, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file)
+                     minMaf=0.005, bgen_file_for_chrom=bgen_file_for_chrom, sample_file=sample_file)
 ## remove list structure and exclude empty entries (are generated if no SNP is selected for a specific CHR)
 lav <- unlist(lav)
 lavSNPs <- lav[which(lav!="")]
