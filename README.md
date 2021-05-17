@@ -1,6 +1,6 @@
 # Genetic and environmental determinants of diastolic heart function
 
-> Abstract
+## Abstract
 
 Diastole is the sequence of physiological events that occur in the heart during ventricular filling and principally depends on myocardial relaxation and chamber stiffness. Abnormal diastolic function is related to many cardiovascular disease processes and is predictive of health outcomes, but its genetic architecture is largely unknown. Here, we use machine learning cardiac motion analysis to measure diastolic functional traits in UK Biobank participants to identify environmental modifiers and associated common genetic variants.  
 
