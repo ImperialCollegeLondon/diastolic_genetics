@@ -2,19 +2,15 @@
 
 > Abstract
 
-Left ventricular diastolic function is a key determinant of ventricular pressures and stroke volume, and abnormal diastolic function is related to many cardiovascular disease processes and is associated with poorer outcomes. The genetic architecture of diastolic function is largely unknown and so we investigated this in a genome wide association study of cardiac motion phenotypes in 39,000 subjects from UK Biobank. We identified xx significant loci containing genes associated with... Network analyses revealed the relationship between diastolic function and multiple cardiovascular and environmental risk factors. Our results provide insights into the genetic and environmental architecture of diastolic function that are relevant to cardiovascular disease and ageing.   
-
-
+Diastole is the sequence of physiological events that occur in the heart during ventricular filling and principally depends on myocardial relaxation and chamber stiffness. Abnormal diastolic function is related to many cardiovascular disease processes and is predictive of health outcomes, but its genetic architecture is largely unknown. Here, we use machine learning cardiac motion analysis to measure diastolic functional traits in UK Biobank participants to identify environmental modifiers and associated common genetic variants.  
 
 ## Content
 
-The repository is composed of different sections 
- 
 * [Cardiac Image analysis (ukbb_cardiac)](https://github.com/baiwenjia/ukbb_cardiac)   
 Automated pipeline for image segmentation and motion analysis.
 
 * [Peak detection](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/peak_detection)  
-Automated peak detection alghortim to obtain the diastolic peak.
+Automated peak detection algorithm to obtain the diastolic peak.
  
 * [Phenotype anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis)   
 Cardiac phenotype pipeline to investigate the relationships between the myocardial diastolic function parameters and the non-imaging clinical data.
@@ -25,12 +21,11 @@ Genome-wide association study (GWAS) analysis for the derived diastolic function
 * [Plots](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/plots)  
 Scatter and box plots of diastolic function.
 
-
-## Release History
-
-* 0.0.1 
-
-## Meta
+## License
 
 Distributed under the GNU GENERAL PUBLIC LICENSE license. See ``LICENSE`` for more information.
+
+## Citation
+
+Marjola Thanaj, Johanna Mielke, Kathryn A. McGurk, Wenjia Bai, Nicolo Savioli, Antonio de Marvao, Hannah V. Meyer, Lingyao Zeng, Martin R. Wilkins, James S. Ware, Christian Bender, Daniel Rueckert, Aidan MacNamara, Daniel F. Freitag, and Declan P. O’Regan. Genetic and environmental determinants of diastolic heart function. medRxiv 2021. 
 
