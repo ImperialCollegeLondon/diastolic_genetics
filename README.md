@@ -29,5 +29,5 @@ Distributed under the GNU GENERAL PUBLIC LICENSE license. See ``LICENSE`` for mo
 
 ## Citation
 
-Marjola Thanaj, Johanna Mielke, Kathryn A. McGurk, Wenjia Bai, Nicolo Savioli, Antonio de Marvao, Hannah V. Meyer, Lingyao Zeng, Martin R. Wilkins, James S. Ware, Christian Bender, Daniel Rueckert, Aidan MacNamara, Daniel F. Freitag, and Declan P. O’Regan. Genetic and environmental determinants of diastolic heart function. _medRxiv_ 2021. 
+Marjola Thanaj, Johanna Mielke, Kathryn A. McGurk, Wenjia Bai, Nicolo Savioli, Antonio de Marvao, Hannah V. Meyer, Lingyao Zeng, Martin R. Wilkins, James S. Ware, Christian Bender, Daniel Rueckert, Aidan MacNamara, Daniel F. Freitag, and Declan P. O’Regan. Genetic and environmental determinants of diastolic heart function. _medRxiv_. 2021 2021.06.07.21257302. doi: [10.1101/2021.06.07.21257302](https://doi.org/10.1101/2021.06.07.21257302)
 
