@@ -15,36 +15,39 @@ Both methods process strain data and extract key features used in downstream ana
 ### 1. Original Peak Detection Method
 This method is based on the `peakdetect.py` script and identifies peaks using basic peak detection techniques. It relies on predefined thresholding and simple peak searching algorithms.
 
-## Usage
-### Running the Original Peak Detection Method
-```
-Enter in main.py and please add the position of the corresponding paths:
+### Usage
+#### Running the Original Peak Detection Method
 
-```
+Enter `main.py` and specify the appropriate paths:
+
+```python
 # 1) Input data folder
-path_strain    = ""
+path_strain = ""
 
-# 2) Phenotype data csv - you must to have it
-path_ages      = "./phenotype_ukbb_13k.csv"
+# 2) Phenotype data CSV (required)
+path_ages = "./phenotype_ukbb_13k.csv"
 
-# 3) Output folder where you will save the plots 
-path_save      = "./plots_path_folder"
+# 3) Output folder for plots
+path_save = "./plots_path_folder"
 
-# 4) Output folder where you final csv will be save - usually where you have your plot folders 
-path_f_out     = "./strain_path_folder"
+# 4) Output folder for final CSV files
+path_f_out = "./strain_path_folder"
 
-# 5) True/False if you want to generate the plots for checking. 
+# 5) Generate plots for checking (True/False)
 generate_plots = True 
 
-# 6) Distance to look ahead from a peak candidate to determine if it is the actual peak - default 5 or 10 ( you must to try the optimal)
-look_ahead     = 5
+# 6) Look-ahead distance for peak detection (default: 5 or 10, optimize as needed)
+look_ahead = 5
 ```
 
-Then execute it:
+Then execute:
 
-```
+```bash
 python main.py
 ```
+
+---
+
 ### 2. New Peak Detection Method (PDSR-GAM)
 This new approach enhances the peak detection process by leveraging **Expectile Generalized Additive Models (GAMs)** to smooth the signal and accurately locate peaks in the **first derivative** of the strain signal.
 
@@ -91,23 +94,28 @@ python main_detect_peaks_ukb.py --signal radial --input_dir ./data --output_dir 
 | `--input_dir` | Directory containing strain data files |
 | `--output_dir`| Directory to save results |
 | `--do_plots`  | Generate plots for peak detection (optional) |
+
 ---
+
 ## File Structure
-```
+```plaintext
 peak_detection/
-├── peakdetect.py  # Original peak detection script
-├── main.py        # Original pipeline
-├── main_detect_peaks_ukb.py  # New PDSR-GAM method
-├── requirements.txt  # Dependencies
-├── README.md      # Documentation
+├── peakdetect.py               # Original peak detection script
+├── main.py                     # Original pipeline
+├── main_detect_peaks_ukb.py    # New PDSR-GAM method
+├── requirements.txt            # Dependencies
+├── README.md                   # Documentation
 ```
+
+---
+
 ## Results
 The output includes:
 - `results/strain_peaks.csv`: Contains detected peak values for each subject.
 - `results/plots/`: Folder with visualizations of detected peaks.
 
-Example output format:
-```
+### Example Output Format
+```plaintext
 subject_id, strain_peak_value, derivative_peak_value
 1000018, 1.75, -6.66
 1000079, 1.91, -7.21
@@ -116,6 +124,7 @@ subject_id, strain_peak_value, derivative_peak_value
 ---
 
 ## Contributions
-- Nicolo Savioli (Imperial College London)
-- Majid Vafaeezadeh - Added PDSR-GAM method
+- **Nicolo Savioli** (Imperial College London)
+- **Majid Vafaeezadeh** - Added PDSR-GAM method
+
 This repository was updated to include the **PDSR-GAM** method for improved peak detection. Contributions are welcome! Please open an issue or submit a pull request for any improvements.
