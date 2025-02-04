@@ -42,7 +42,7 @@ Ensure you have Python and the required libraries installed:
 ```bash
 pip install pandas matplotlib scipy numpy sklearn
 
----
+```
 
 ## Running the Script
 
