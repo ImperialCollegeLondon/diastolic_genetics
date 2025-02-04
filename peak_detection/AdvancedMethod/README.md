@@ -41,22 +41,106 @@ Ensure you have Python and the required libraries installed:
 
 ```bash
 pip install pandas matplotlib scipy numpy sklearn
-
 ```
 
-## Running the Script
+---
 
-To run the script, execute it from the command line or terminal with the required arguments:
+## **Usage Instructions**
 
-```python
- python main_detect_peaks_ukb.py --signal --input_dir --output_dir 
+### **1. Running the Peak Detection Script**
+To detect peaks in strain data:
+
+```bash
+python main_detect_peaks_ukb.py --signal radial --input_dir ./data --output_dir ./results
 ```
 
+**Arguments Explained:**
+- `--signal`: Type of strain data (`radial`, `circum`, `longit`).
+- `--input_dir`: Path to input CSV files.
+- `--output_dir`: Folder where results will be saved.
 
-Arguments Explained:
-- `--signal`: The type of strain data to process ("radial", "circum", "longit").
-- `--input_dir`: The directory containing subject strain data.
-- `--output_dir`: The directory where results will be saved.
+---
 
-# Records
-Created by Majid Vafaeezadeh, 20-01-2025
+### **2. Combining Extracted PDSR Data**
+To merge PDSR values into a single file:
+
+```bash
+python combine.py
+```
+
+- Make sure to update `input_dir` and `output_file` in the script.
+
+---
+
+### **3. Merging Radial & Longitudinal Data**
+To combine radial and longitudinal PDSR datasets:
+
+```bash
+python Combine_longi_radial.py
+```
+
+- Ensure the correct input file paths are set in the script.
+
+---
+
+### **4. Comparing Datasets and Generating Scatter Plots**
+To compare PDSR values from two datasets:
+
+```bash
+python ScatterPlot.py
+```
+
+- Updates the script with paths to the **A_dataset** and **B_dataset**.
+- The script generates **scatter plots** for visualization.
+
+---
+
+## **File Descriptions**
+
+### **1. main_detect_peaks_ukb.py**
+- Detects **strain peaks** and calculates **PDSR values**.
+- Uses **Expectile GAMs** for smooth signal processing.
+- Saves results in CSV format.
+
+### **2. combine.py**
+- Collects and consolidates PDSR values from individual **CSV files**.
+- Filters **Global** strain data.
+- Outputs a **single merged CSV file**.
+
+### **3. Combine_longi_radial.py**
+- Merges **radial** and **longitudinal** PDSR datasets.
+- Ensures matching **`digital_number`** and **`instance`** values.
+- Saves the final dataset in CSV format.
+
+### **4. ScatterPlot.py**
+- Compares PDSR values between two datasets (e.g., **A_dataset vs. B_dataset** subjects).
+- Filters based on **matching IDs** (`eid_40616`).
+- Computes **differences, median error, and mean squared error (MSE)**.
+- Generates **scatter plots**.
+
+---
+
+## **Data Output Structure**
+```bash
+output/
+├── results/               # Processed PDSR values
+│   ├── subject1_PDSR.csv
+│   ├── subject2_PDSR.csv
+│   ├── combined_PDSR.csv  # Final merged file
+│   ├── merged_radial_longi.csv  # Combined radial & longitudinal data
+│   ├── comparison_plot.png  # Scatter plot output
+└── logs/                  # Logs and metadata
+```
+
+---
+
+## **Contributors**
+- **Majid Vafaeezadeh** – Developer of the pipeline (20-01-2025)
+- Contributions are welcome! Feel free to submit **issues or pull requests**.
+
+---
+
+
+
+
+
