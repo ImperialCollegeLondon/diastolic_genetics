@@ -12,7 +12,9 @@ Diastole is the sequence of physiological events that occur in the heart during 
 Automated pipeline for image segmentation and motion analysis.
 
 * [Peak detection](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/peak_detection)  
-Automated peak detection algorithm to obtain the diastolic peak.
+Automated peak detection algorithm to obtain the diastolic peak. This repository includes two approaches for detecting peaks in cardiac strain data:
+  - **Baseline Method[](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/peak_detection/AdvancedMethod)**: Uses local extrema detection with a predefined look-ahead window for peak identification.  
+  - **Advanced Method[](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/peak_detection/BaselineMethod)**: A new technique using **Expectile Generalized Additive Models (GAMs)** to enhance peak detection accuracy and robustness against noise.
  
 * [Phenotype anaysis](https://github.com/ImperialCollegeLondon/diastolic_genetics/tree/master/phenotype_analysis)   
 Cardiac phenotype pipeline to investigate the relationships between the myocardial diastolic function parameters and the non-imaging clinical data.
