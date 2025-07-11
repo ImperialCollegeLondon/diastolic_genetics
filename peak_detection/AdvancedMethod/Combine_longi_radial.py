@@ -36,5 +36,5 @@ merged_df = pd.merge(df1, df2, on=["digital_number", "instance"], how="inner")
 # Save the merged dataframe
 merged_df.to_csv(output_file, index=False)
 
-print(f"✅ Output file saved to: {output_file}")
+print(f"Output file saved to: {output_file}")
 
