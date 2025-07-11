@@ -48,7 +48,7 @@ pip install pandas matplotlib scipy numpy sklearn
 ### **Python Environment**
 The pipeline was developed and tested using:
 - **Python 3.9**
-- The following packages (as defined in `requirements.txt`):
+- The following packages:
   - `pandas==2.2.3`
   - `numpy==1.26.4`
   - `matplotlib==3.9.4`
