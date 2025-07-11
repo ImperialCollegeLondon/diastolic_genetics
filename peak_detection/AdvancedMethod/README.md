@@ -45,6 +45,17 @@ pip install pandas matplotlib scipy numpy sklearn
 
 ---
 
+### **Python Environment**
+The pipeline was developed and tested using:
+- **Python 3.9**
+- The following packages (as defined in `requirements.txt`):
+  - `pandas==2.2.3`
+  - `numpy==1.26.4`
+  - `matplotlib==3.9.4`
+  - `scipy==1.11.4`
+  - `scikit-learn==1.6.1`
+  - `pygam==0.9.1`
+  - `tqdm==4.67.1`
 ## **Usage Instructions**
 
 ### **1. Running the Peak Detection Script**
