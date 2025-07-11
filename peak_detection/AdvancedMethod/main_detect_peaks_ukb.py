@@ -10,9 +10,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from pygam import s, f, ExpectileGAM
 from functools import partial
-
 from joblib import Parallel, delayed
-
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
@@ -159,244 +157,168 @@ def plot_results(tpoints, signal, der, sig_peak, der_peak, signal_name, subject,
     fig.savefig(osp.join(plots_dir, subject, f"{subject}_{signal_name}.png"))
     plt.close()
 
-def merge_results(input_dir, save_path):
-    list_csv = os.listdir(input_dir)
-    subjects = [x.split("_")[0] for x in list_csv]
-    merged_df = []
-    for f in tqdm(list_csv):
-        values = pd.read_csv(osp.join(input_dir, f), index_col=0)
-        merged_df.append(values.to_numpy().squeeze())
-    merged_df = np.r_[merged_df]
-    merged_df = pd.DataFrame(data=merged_df, columns=values.columns)
-    merged_df["ID"] = subjects
-    merged_df.to_csv(save_path)
-    return None
+def merge_results(input_dir, output_path):
+    all_dfs = []
+    for file in os.listdir(input_dir):
+        if file.endswith(".csv"):
+            df = pd.read_csv(os.path.join(input_dir, file))
+            df["subject"], df["visit"] = file.replace(".csv", "").split("_V")
+            all_dfs.append(df)
+
+    if not all_dfs:
+        print("No CSV files found to merge.")
+        return
+
+    merged_df = pd.concat(all_dfs, ignore_index=True)
+    merged_df.to_csv(output_path, index=False)
+    print(f"Merged CSV saved to {output_path}")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Find peaks strain UKBB")
-    parser.add_argument("signal", type=str, choices=["radial", "circum", "longit"], default="radial")
-    parser.add_argument("input_dir", type=str)
-    parser.add_argument("output_dir", type=str)
-    parser.add_argument("--only_global", action="store_true", dest="only_global", default=False)
-    parser.add_argument(
-        "--list_subjects",
-        dest="list_subjects",
-        type=str,
-        help="Text file containing the list of IDs to analyse (txt format).",
-        default=None,
-    )
+    parser = argparse.ArgumentParser(description="Detect signal and derivative peaks in strain curves.")
+    parser.add_argument("--signal", type=str, choices=["radial", "circum", "longit"], default="circum", help="Type of strain signal to process. Options: radial, circum, longit. Default is circum.")
+    parser.add_argument("--input_dir", type=str, required=True)
+    parser.add_argument("--output_dir", type=str, required=True)
+    parser.add_argument("--list_subjects", type=str, default=None)
+    parser.add_argument("--signals", nargs="+", type=str, default=None, help="List of signal names to process (e.g., Global Base Mid). If None, process all available signals.")
     parser.add_argument("--do_plots", dest="do_plots", action="store_true", default=False)
+    parser.add_argument("--no-parallel", action="store_false", dest="parallel", default=True, help="Disable parallel processing (default is parallel)")
+    parser.add_argument("--num_workers", type=int, default=None, help="Number of parallel workers (default: all cores)")
+    return parser.parse_args()
 
-    args = parser.parse_args()
+def _process_subjects(subject, signals_to_use: list, invert_signal: bool):
+    if osp.isfile(osp.join(input_dir, subject)):
+        return None
 
-    return args
+    subject_dir = osp.join(input_dir, subject)
 
-
-if __name__ == "__main__":
-
-    def _process_subjects(subject, only_global: bool, invert_signal: bool):
-        if osp.isfile(osp.join(args.input_dir, subject)):
-            return None
-
-        subject_dir = osp.join(args.input_dir, subject)
-
-        # if osp.isfile(osp.join(save_dir, f"{subject}.csv")):
-        #     return None
+    try:
+        visit_folders = os.listdir(subject_dir)
+    except Exception as e:
+        print(f"Error accessing subject directory {subject_dir}: {e}")
+        with open(osp.join(out_dir, MISSING_FILE), "a") as f:
+            f.writelines(f"{subject}\n")
+        return None     #subject_dir  = subject_dir + "/visit_2/"
+    for visit_folder in visit_folders:
+        save_path = osp.join(save_dir, f"{subject}_V{visit_folder[6]}.csv")
+        if osp.isfile(save_path):
+            continue
         try:
-            visit_folders = os.listdir(subject_dir)
-        except Exception as e:
-            print(f"Error accessing subject directory {subject_dir}: {e}")
-            with open(osp.join(out_dir, MISSING_FILE), "a") as f:
-                f.writelines(f"{subject}\n")
-            return None     #subject_dir  = subject_dir + "/visit_2/"
-        for visit_folder in visit_folders:
-            try:
-                visit_dir = osp.join(subject_dir, visit_folder)
-                input_file_path = osp.join(visit_dir, input_fname)
+            visit_dir = osp.join(subject_dir, visit_folder)
+            input_file_path = osp.join(visit_dir, input_fname)
 
-                if not osp.isfile(input_file_path):
-                    with open(osp.join(out_dir, MISSING_FILE), "a") as f:
-                        f.writelines(f"{subject}\n")
-                    continue
-
-                signals = pd.read_csv(osp.join(subject_dir, input_fname), index_col=0)
-                # Remove all-zero columns
-                signals = signals.loc[:, (signals != 0).any(axis=0)]
-
-                # Time points from column names
-                tpoints = np.asarray(signals.columns, dtype=float)
-                tpoints = np.round(tpoints, 4)  # Round the time points
-
-                # Take signal names from rownames
-
-                # Prepare output
-                results_dict = {
-                    "signal_name": [],
-                    "sig_peak_idx": [],
-                    "sig_peak_time": [],
-                    "sig_peak_value": [],
-                    "der_peak_idx": [],
-                    "der_peak_time": [],
-                    "der_peak_value": [],
-                }
-
-                signal_names = np.asarray([str(x) for x in signals.index])
-
-                if only_global:
-                    # Use only Global
-                    signal_names = ["Global"]
-
-                for i in range(len(signal_names)):
-                    signal = signals.loc[signals.index == signal_names[i], :].to_numpy().squeeze()
-
-                    try:
-                        sig_peak, der_peak, der = find_peak_gam(tpoints, signal.copy(), invert_sign=invert_signal)
-                    except:
-                        with open(osp.join(out_dir, FAILED_DETECT), "a") as f:
-                            f.writelines(f"{subject}, {signal_names[i]}\n")
-                        der = np.diff(signal)
-                        sig_peak = None
-                        der_peak = None
-                        results_dict["signal_name"].append(signal_names[i])
-                        results_dict["sig_peak_idx"].append("-")
-                        results_dict["sig_peak_time"].append("-")
-                        results_dict["sig_peak_value"].append("-")
-                        results_dict["der_peak_idx"].append("-")
-                        results_dict["der_peak_time"].append("-")
-                        results_dict["der_peak_value"].append("-")
-                        plot_results(tpoints, signal, der, sig_peak, der_peak, signal_names[i], subject, plots_failed_dir)
-                        continue
-
-                    if args.do_plots:
-                        plot_results(tpoints, signal, der, sig_peak, der_peak, signal_names[i], subject, plots_dir)
-
-                    results_dict["signal_name"].append(signal_names[i])
-                    results_dict["sig_peak_idx"].append(sig_peak)
-                    results_dict["sig_peak_time"].append(tpoints[sig_peak])
-                    results_dict["sig_peak_value"].append(signal[sig_peak])
-                    results_dict["der_peak_idx"].append(der_peak)
-                    results_dict["der_peak_time"].append(tpoints[der_peak])
-                    results_dict["der_peak_value"].append(der[der_peak])
-
-                df = pd.DataFrame.from_dict(results_dict)
-                df.to_csv(osp.join(save_dir, f"{subject}.csv"))
-            except Exception as e:
-                print(f"Error processing visit folder {visit_folder} for subject {subject}: {e}")
+            if not osp.isfile(input_file_path):
+                with open(osp.join(out_dir, MISSING_FILE), "a") as f:
+                    f.writelines(f"{subject}\n")
                 continue
 
+            signals = pd.read_csv(input_file_path, index_col=0)
+            # Remove all-zero columns
+            signals = signals.loc[:, (signals != 0).any(axis=0)]
 
+            # Time points from column names
+            tpoints = np.asarray(signals.columns, dtype=float)
+            tpoints = np.round(tpoints, 4)  # Round the time points
+
+            # Take signal names from rownames
+
+            # Prepare output
+            results_dict = {
+                "signal_name": [],
+                "sig_peak_idx": [],
+                "sig_peak_time": [],
+                "sig_peak_value": [],
+                "der_peak_idx": [],
+                "der_peak_time": [],
+                "der_peak_value": [],
+            }
+
+            signal_names = np.asarray([str(x) for x in signals.index])
+
+            if signals_to_use is not None:
+                signal_names = [s for s in signal_names if s in signals_to_use]
+
+            for i in range(len(signal_names)):
+                signal = signals.loc[signals.index == signal_names[i], :].to_numpy().squeeze()
+
+                try:
+                    sig_peak, der_peak, der = find_peak_gam(tpoints, signal.copy(), invert_sign=invert_signal)
+                except Exception as e:
+                    print(f"[ERROR] Subject {subject}, Signal {signal_names[i]} failed with error: {e}")
+                    with open(osp.join(out_dir, FAILED_DETECT), "a") as f:
+                        f.writelines(f"{subject}, {signal_names[i]}, ERROR: {e}\n")
+                    der = np.diff(signal)
+                    sig_peak = None
+                    der_peak = None
+                    results_dict["signal_name"].append(signal_names[i])
+                    results_dict["sig_peak_idx"].append("-")
+                    results_dict["sig_peak_time"].append("-")
+                    results_dict["sig_peak_value"].append("-")
+                    results_dict["der_peak_idx"].append("-")
+                    results_dict["der_peak_time"].append("-")
+                    results_dict["der_peak_value"].append("-")
+                    plot_results(tpoints, signal, der, sig_peak, der_peak, signal_names[i], subject, plots_failed_dir)
+                    continue
+
+                if args.do_plots:
+                    plot_results(tpoints, signal, der, sig_peak, der_peak, signal_names[i], subject, plots_dir)
+
+                results_dict["signal_name"].append(signal_names[i])
+                results_dict["sig_peak_idx"].append(sig_peak)
+                results_dict["sig_peak_time"].append(tpoints[sig_peak])
+                results_dict["sig_peak_value"].append(signal[sig_peak])
+                results_dict["der_peak_idx"].append(der_peak)
+                results_dict["der_peak_time"].append(tpoints[der_peak])
+                results_dict["der_peak_value"].append(der[der_peak])
+
+            df = pd.DataFrame.from_dict(results_dict)
+            df.to_csv(save_path)
+        except Exception as e:
+            print(f"Error processing visit folder {visit_folder} for subject {subject}: {e}")
+            continue
+
+if __name__ == "__main__":
     args = parse_args()
+    signal = args.signal 
+    signals_to_use = args.signals
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    print(f"Input dir: {args.input_dir}")
+    print(f"Output dir: {args.output_dir}")
 
     if args.list_subjects is None:
-        subjects = [x for x in os.listdir(args.input_dir)]
+        subjects = [x for x in os.listdir(input_dir) if osp.isdir(osp.join(input_dir, x))]
         print(f"Found {len(subjects)} directories")
     else:
         subjects = np.genfromtxt(args.list_subjects, dtype=str)
-        subjects = np.asarray(subjects).reshape(
-            -1,
-        )
+        subjects = np.asarray(subjects).reshape(-1,)
         print(subjects)
         print(len(subjects))
         print(f"Processing {len(subjects)} subjects...")
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    out_dir = osp.join(args.output_dir, args.signal)
+    os.makedirs(output_dir, exist_ok=True)
+    out_dir = osp.join(output_dir, signal)
     save_dir = osp.join(out_dir, "results")
     plots_dir = osp.join(out_dir, "plots")
     plots_failed_dir = osp.join(out_dir, "plots_failed")
     os.makedirs(save_dir, exist_ok=True)
-    os.makedirs(plots_dir, exist_ok=True)
-    os.makedirs(plots_failed_dir, exist_ok=True)
+    if args.do_plots:
+        os.makedirs(plots_dir, exist_ok=True)
+        os.makedirs(plots_failed_dir, exist_ok=True)
 
-    if args.signal in ["longit", "circum"]:
+    if signal in ["longit", "circum"]:
         invert_signal = True
     else:
         invert_signal = False
 
-    input_fname = INPUT_FNAMES[args.signal]
+    input_fname = INPUT_FNAMES[signal]
 
-    Parallel(n_jobs=-1)(
-        delayed(partial(_process_subjects, only_global=args.only_global, invert_signal=invert_signal))(subject)
-        for subject in tqdm(sorted(subjects))
-    )
-    for subject in tqdm(subjects):
-        _process_subjects(only_global=args.only_global, invert_signal=invert_signal, subject=subject)
-
-    for subject in tqdm(subjects):
-    
-        if osp.isfile(osp.join(args.input_dir, subject)):
-            continue
-    
-        subject_dir = osp.join(args.input_dir, subject)
-    
-        if osp.isfile(osp.join(save_dir, f"{subject}.csv")):
-            continue
-    
-        if not osp.isfile(osp.join(subject_dir, input_fname)):
-            with open(osp.join(out_dir, MISSING_FILE), 'a') as f:
-                f.writelines(f'{subject}\n')
-            continue
-    
-        signals = pd.read_csv(osp.join(subject_dir, input_fname),
-            index_col=0)
-        # Remove all-zero columns
-        signals = signals.loc[:, (signals != 0).any(axis=0)]
-    
-        # Time points from column names
-        tpoints = np.asarray(signals.columns, dtype=float)
-        tpoints = np.round(tpoints, 4)  # Round the time points
-    
-        # Take signal names from rownames
-    
-        # # Use only Global
-        # i = int(np.where(signal_names == 'Global')[0])
-    
-        # Prepare output
-        results_dict = {
-            'signal_name': [],
-            'sig_peak_idx': [],
-            'sig_peak_time': [],
-            'sig_peak_value': [],
-            'der_peak_idx': [],
-            'der_peak_time': [],
-            'der_peak_value': []
-        }
-    
-        signal_names = np.asarray([str(x) for x in signals.index])
-    
-        for i in range(len(signal_names)):
-            signal = signals.iloc[i, :].to_numpy().squeeze()
-    
-            try:
-                sig_peak, der_peak, der = find_peak_gam(tpoints, signal.copy(), invert_sign=invert_signal)
-                if invert_signal:
-                    der = -der
-            except:
-                with open(osp.join(out_dir, FAILED_DETECT), 'a') as f:
-                    f.writelines(f'{subject}, {signal_names[i]}\n')
-                der = np.diff(signal)
-                sig_peak = None
-                der_peak = None
-                results_dict['signal_name'].append(signal_names[i])
-                results_dict['sig_peak_idx'].append("-")
-                results_dict['sig_peak_time'].append("-")
-                results_dict['sig_peak_value'].append("-")
-                results_dict['der_peak_idx'].append("-")
-                results_dict['der_peak_time'].append("-")
-                results_dict['der_peak_value'].append("-")
-                plot_results(tpoints, signal, der, sig_peak, der_peak, signal_names[i], subject, plots_failed_dir)
-                continue
-    
-            plot_results(tpoints, signal, der, sig_peak, der_peak, signal_names[i], subject, plots_dir)
-    
-            results_dict['signal_name'].append(signal_names[i])
-            results_dict['sig_peak_idx'].append(sig_peak)
-            results_dict['sig_peak_time'].append(tpoints[sig_peak])
-            results_dict['sig_peak_value'].append(signal[sig_peak])
-            results_dict['der_peak_idx'].append(der_peak)
-            results_dict['der_peak_time'].append(tpoints[der_peak])
-            results_dict['der_peak_value'].append(der[der_peak])
-    
-        df = pd.DataFrame.from_dict(results_dict)
-        df.to_csv(osp.join(save_dir, f'{subject}.csv'))
-
+    if args.parallel:
+        n_jobs = args.num_workers if args.num_workers is not None else -1
+        Parallel(n_jobs=n_jobs)(
+            delayed(partial(_process_subjects, signals_to_use=signals_to_use, invert_signal=invert_signal))(subject)
+            for subject in tqdm(sorted(subjects))
+        )
+    else:
+        for subject in tqdm(subjects):
+            _process_subjects(signals_to_use=signals_to_use, invert_signal=invert_signal, subject=subject)
+    merge_results(os.path.join(save_dir), os.path.join(output_dir, f"{signal}_merged.csv"))
